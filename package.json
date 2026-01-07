@@ -1,0 +1,88 @@
+{
+  "name": "@your-company/voc-automation-mcp-server",
+  "version": "1.0.0",
+  "description": "고객 VOC 처리 자동화 MCP 서버 - PII 보호, LLM 분석, Jira 연동",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "dev": "npm run dev --workspaces",
+    "test": "npm run test --workspaces",
+    "clean": "rm -rf dist servers/*/dist shared/dist",
+    "prepublishOnly": "npm run clean && npm run build",
+    "setup:cursor": "node scripts/setup-cursor.js"
+  },
+  "workspaces": [
+    "servers/*",
+    "shared"
+  ],
+  "files": [
+    "servers/*/dist/**/*",
+    "servers/*/package.json",
+    "shared/dist/**/*",
+    "shared/package.json",
+    "docs/**/*",
+    "examples/**/*",
+    "cursor-mcp-config.json",
+    ".env.example",
+    "README.md",
+    "LICENSE"
+  ],
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "keywords": [
+    "mcp",
+    "voc",
+    "voice-of-customer",
+    "automation",
+    "pii",
+    "privacy",
+    "jira",
+    "llm",
+    "ai",
+    "customer-service",
+    "한국어",
+    "개인정보보호"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-company/voc-automation-mcp-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-company/voc-automation-mcp-server/issues",
+    "email": "it-support@your-company.com"
+  },
+  "homepage": "https://github.com/your-company/voc-automation-mcp-server#readme",
+  "author": {
+    "name": "VOC Automation Team",
+    "email": "voc-team@your-company.com"
+  },
+  "contributors": [
+    {
+      "name": "Your Name",
+      "email": "your.name@your-company.com"
+    }
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "registry": "https://your-nexus-url/repository/npm-private/",
+    "access": "restricted"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ]
+}
+

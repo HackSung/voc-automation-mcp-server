@@ -1,0 +1,114 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+    
+    - name: 🔧 Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    
+    - name: 📦 Install dependencies
+      run: npm ci
+    
+    - name: 🏗️ Build
+      run: npm run build
+    
+    - name: ✅ Verify build outputs
+      run: |
+        test -f servers/pii-security-server/dist/index.js || exit 1
+        test -f servers/voc-analysis-server/dist/index.js || exit 1
+        test -f servers/jira-integration-server/dist/index.js || exit 1
+        test -f servers/internal-api-server/dist/index.js || exit 1
+        echo "✅ All server builds verified"
+      shell: bash
+    
+    - name: 🔍 Check for sensitive data
+      run: |
+        if grep -r "sk-proj" servers/ --include="*.ts" --include="*.js" 2>/dev/null; then
+          echo "❌ API keys found in code!"
+          exit 1
+        fi
+        if grep -r "sk-ant" servers/ --include="*.ts" --include="*.js" 2>/dev/null; then
+          echo "❌ API keys found in code!"
+          exit 1
+        fi
+        echo "✅ No sensitive data found"
+      shell: bash
+    
+    - name: 📊 Check for .env files
+      run: |
+        if find . -name ".env" -not -path "./node_modules/*" | grep -q .; then
+          echo "❌ .env file found in repository!"
+          exit 1
+        fi
+        echo "✅ No .env files in repository"
+      shell: bash
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+    
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+    
+    - name: 📦 Install dependencies
+      run: npm ci
+    
+    - name: 🔒 Run npm audit
+      run: npm audit --audit-level=moderate
+      continue-on-error: true
+    
+    - name: 🔍 Check for hardcoded secrets
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: ${{ github.event.repository.default_branch }}
+        head: HEAD
+        extra_args: --debug --only-verified
+
+  lint:
+    name: Lint Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+    
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: 📦 Install dependencies
+      run: npm ci
+    
+    - name: 📝 Check TypeScript
+      run: npx tsc --noEmit
+      continue-on-error: true
+

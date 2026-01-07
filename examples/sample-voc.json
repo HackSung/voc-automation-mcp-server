@@ -1,0 +1,90 @@
+{
+  "examples": [
+    {
+      "id": "voc-001",
+      "title": "Login Authentication Error",
+      "text": "I'm having trouble logging into my account. My email is john.doe@example.com and I keep getting an 'Invalid credentials' error. I've tried resetting my password twice already, but it still doesn't work. This is really frustrating because I need to access my dashboard urgently. My phone number is 010-1234-5678 if you need to contact me.",
+      "metadata": {
+        "customerId": "CUST-12345",
+        "source": "email",
+        "timestamp": "2026-01-07T10:30:00Z"
+      },
+      "expectedAnalysis": {
+        "intent": "complaint",
+        "category": ["authentication", "login"],
+        "priority": "High",
+        "sentiment": "negative",
+        "hasPII": true
+      }
+    },
+    {
+      "id": "voc-002",
+      "title": "Feature Request - Dark Mode",
+      "text": "It would be great if you could add a dark mode to the dashboard. I work late at night and the bright white interface strains my eyes. Many other apps have this feature and it would really improve the user experience. Thank you for considering this!",
+      "metadata": {
+        "customerId": "CUST-67890",
+        "source": "chat",
+        "timestamp": "2026-01-07T14:15:00Z"
+      },
+      "expectedAnalysis": {
+        "intent": "feature_request",
+        "category": ["ui", "ux"],
+        "priority": "Medium",
+        "sentiment": "positive",
+        "hasPII": false
+      }
+    },
+    {
+      "id": "voc-003",
+      "title": "Payment Processing Bug",
+      "text": "URGENT: Our payment processing is completely broken! We can't process any customer payments for the last 2 hours. Error code BILL_001 appears every time. This is costing us thousands of dollars in lost revenue. Customer ID: 98765. Please fix this immediately!",
+      "metadata": {
+        "customerId": "CUST-98765",
+        "source": "phone",
+        "timestamp": "2026-01-07T16:45:00Z"
+      },
+      "expectedAnalysis": {
+        "intent": "bug_report",
+        "category": ["billing", "payment"],
+        "priority": "Critical",
+        "sentiment": "negative",
+        "hasPII": false
+      }
+    },
+    {
+      "id": "voc-004",
+      "title": "Slow Dashboard Loading",
+      "text": "The dashboard takes forever to load lately. It used to be instant, but now it takes 30-40 seconds every time I refresh. Is there a performance issue? My internet connection is fine, so it must be on your end.",
+      "metadata": {
+        "customerId": "CUST-45678",
+        "source": "feedback_form",
+        "timestamp": "2026-01-07T11:20:00Z"
+      },
+      "expectedAnalysis": {
+        "intent": "complaint",
+        "category": ["performance"],
+        "priority": "Medium",
+        "sentiment": "negative",
+        "hasPII": false
+      }
+    },
+    {
+      "id": "voc-005",
+      "title": "Question About API Rate Limits",
+      "text": "Hi, I'm trying to integrate your API into our system. Could you clarify what the rate limits are for the /api/v2/users endpoint? The documentation says 100 requests per minute, but I'm getting rate-limited at around 50. Thanks!",
+      "metadata": {
+        "customerId": "CUST-11223",
+        "source": "developer_forum",
+        "timestamp": "2026-01-07T09:00:00Z"
+      },
+      "expectedAnalysis": {
+        "intent": "question",
+        "category": ["api", "integration"],
+        "priority": "Low",
+        "sentiment": "neutral",
+        "hasPII": false
+      }
+    }
+  ]
+}
+
