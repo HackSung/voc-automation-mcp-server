@@ -54,7 +54,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             issueType: {
               type: 'string',
               enum: ['Bug', 'New Feature', 'Story', 'Epic', 'Task', 'Work', 'Defect_QA', 'Story_QA', 'Improvement'],
-              description: 'Issue type (VRBT 프로젝트 지원 타입)',
+              description: 'Issue type (default: Work)',
             },
             summary: {
               type: 'string',
@@ -77,7 +77,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             components: {
               type: 'array',
               items: { type: 'string' },
-              description: 'Optional Jira components (e.g., ["VOC", "Customer Support"])',
+              description: 'Jira components (default: ["[VOC]"])',
             },
             category: {
               type: 'string',
@@ -93,7 +93,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: 'Send Teams notification (default: false)',
             },
           },
-          required: ['issueType', 'summary', 'description', 'priority'],
+          required: ['summary', 'description', 'priority'],
         },
       },
       {
@@ -165,12 +165,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       const result = await jiraClient.createIssue({
         project: params.project || config.jira.projectKey,
-        issueType: params.issueType,
+        issueType: params.issueType || 'Work',
         summary: params.summary,
         description: params.description,
         priority: params.priority,
         labels: params.labels,
-        components: params.components,
+        components: params.components || ['[VOC]'],
         category: params.category,
         assignee: params.assignee,
       });
