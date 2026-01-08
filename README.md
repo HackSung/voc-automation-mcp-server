@@ -26,12 +26,13 @@
 - ♻️ 필요시에만 원문 복원 (Jira 저장용)
 - ⏱️ 1시간 후 자동 삭제 (메모리 누수 방지)
 
-### 지능형 분석
-- 🤖 LLM 기반 VOC 의도 분류 (버그/기능요청/문의/불만/피드백)
+### 지능형 분석 (Cursor LLM 활용)
+- 🤖 Cursor 연동 LLM으로 VOC 의도 분류 (버그/기능요청/문의/불만/피드백)
 - 📊 우선순위 자동 판단 (Critical → Low)
 - 🏷️ 카테고리 자동 추출 (인증/결제/성능/UI 등)
 - 😊 감정 분석 (긍정/중립/부정)
 - 🔍 임베딩 기반 중복 이슈 검색
+- ✨ **별도 LLM API 키 불필요** - Cursor의 LLM 사용
 
 ### 자동 티켓팅
 - 🎫 Jira 이슈 자동 생성
@@ -52,7 +53,7 @@
 | 서버 | 역할 | 주요 Tool |
 |------|------|-----------|
 | **PII Security** | 개인정보 보호 | `detectAndAnonymizePII`, `restoreOriginalText` |
-| **VOC Analysis** | LLM 분석 | `analyzeVOC`, `findSimilarIssues` |
+| **VOC Analysis** | 프롬프트 생성 & 파싱 | `generateVOCAnalysisPrompt`, `parseVOCAnalysis` |
 | **Jira Integration** | 티켓 자동화 | `createJiraIssue`, `addComment` |
 | **Internal API** | 레거시 연동 | `queryUserStatus`, `getErrorContext` |
 
@@ -249,10 +250,10 @@ JIRA_BASE_URL=https://your-company.atlassian.net
 JIRA_EMAIL=your-email@company.com
 JIRA_API_TOKEN=your-jira-api-token
 
-# LLM API (필수 - 둘 중 하나)
-OPENAI_API_KEY=sk-...
-# 또는
-ANTHROPIC_API_KEY=sk-ant-...
+# LLM API (선택 - 임베딩 검색용)
+# VOC 분석은 Cursor의 LLM을 사용하므로 API 키 불필요!
+# 유사 이슈 검색 기능만 사용하려면 OpenAI 키 필요
+OPENAI_API_KEY=sk-...  # 선택사항
 
 # 내부 API (선택)
 INTERNAL_API_BASE_URL=https://internal-api.company.com
@@ -336,12 +337,14 @@ Cursor 채팅창에 다음과 같이 입력하세요:
 
 처리 순서:
 1. 개인정보 비식별화 (세션: voc-20260107-001)
-2. VOC 분석 (의도, 우선순위, 카테고리)
-3. 유사 이슈 검색
-4. AUTH_001 에러 컨텍스트 조회
-5. Jira 티켓 생성 (프로젝트: VOC, Teams 알림 전송)
-6. 원문 복원해서 Jira 코멘트 추가
-7. 세션 정리
+2. VOC 분석 프롬프트 생성
+3. 프롬프트로 VOC 분석 (Cursor의 LLM 사용)
+4. 분석 결과 파싱
+5. 유사 이슈 검색
+6. AUTH_001 에러 컨텍스트 조회
+7. Jira 티켓 생성 (프로젝트: VOC, Teams 알림 전송)
+8. 원문 복원해서 Jira 코멘트 추가
+9. 세션 정리
 ```
 
 ### 결과 예시

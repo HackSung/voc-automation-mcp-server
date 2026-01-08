@@ -5,9 +5,11 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { LLMClient } from './llm-client.js';
-import { VOCAnalyzer } from './voc-analyzer.js';
+import { PromptGenerator } from './prompt-generator.js';
+import { ResultParser } from './result-parser.js';
 import { SimilaritySearch } from './similarity-search.js';
 import { Logger, getEnvConfig } from '@voc-automation/shared';
 
@@ -15,25 +17,11 @@ const logger = new Logger('VOCAnalysisServer');
 
 const config = getEnvConfig();
 
-// Initialize LLM client (prefer OpenAI, fallback to Anthropic)
-let llmClient: LLMClient;
-if (config.llm.openaiKey) {
-  llmClient = new LLMClient({
-    provider: 'openai',
-    apiKey: config.llm.openaiKey,
-  });
-} else if (config.llm.anthropicKey) {
-  llmClient = new LLMClient({
-    provider: 'anthropic',
-    apiKey: config.llm.anthropicKey,
-  });
-} else {
-  throw new Error(
-    'No LLM API key configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY'
-  );
-}
+// Initialize components (no LLM client needed!)
+const promptGenerator = new PromptGenerator();
+const resultParser = new ResultParser();
 
-const vocAnalyzer = new VOCAnalyzer(llmClient);
+// Similarity search still needs OpenAI for embeddings
 const similaritySearch = config.llm.openaiKey
   ? new SimilaritySearch(config.llm.openaiKey)
   : null;
@@ -41,41 +29,140 @@ const similaritySearch = config.llm.openaiKey
 const server = new Server(
   {
     name: 'voc-analysis-server',
-    version: '1.0.0',
+    version: '2.0.0',
   },
   {
     capabilities: {
       tools: {},
+      resources: {},
     },
   }
 );
+
+// ============================================================================
+// Resources: Expose prompt templates
+// ============================================================================
+
+server.setRequestHandler(ListResourcesRequestSchema, async () => {
+  logger.debug('Listing prompt resources');
+
+  return {
+    resources: [
+      {
+        uri: 'prompt://voc/intent-classification',
+        name: 'VOC Intent Classification Prompt',
+        description: 'Prompt template for classifying VOC intent',
+        mimeType: 'text/plain',
+      },
+      {
+        uri: 'prompt://voc/priority-evaluation',
+        name: 'VOC Priority Evaluation Prompt',
+        description: 'Prompt template for evaluating VOC priority',
+        mimeType: 'text/plain',
+      },
+      {
+        uri: 'prompt://voc/category-extraction',
+        name: 'VOC Category Extraction Prompt',
+        description: 'Prompt template for extracting VOC categories',
+        mimeType: 'text/plain',
+      },
+      {
+        uri: 'prompt://voc/sentiment-analysis',
+        name: 'VOC Sentiment Analysis Prompt',
+        description: 'Prompt template for analyzing VOC sentiment',
+        mimeType: 'text/plain',
+      },
+      {
+        uri: 'prompt://voc/summary-generation',
+        name: 'VOC Summary Generation Prompt',
+        description: 'Prompt template for generating VOC summary',
+        mimeType: 'text/plain',
+      },
+    ],
+  };
+});
+
+server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+  const uri = request.params.uri;
+  logger.debug('Reading resource', { uri });
+
+  const typeMap: { [key: string]: 'intent' | 'priority' | 'category' | 'sentiment' | 'summary' } = {
+    'prompt://voc/intent-classification': 'intent',
+    'prompt://voc/priority-evaluation': 'priority',
+    'prompt://voc/category-extraction': 'category',
+    'prompt://voc/sentiment-analysis': 'sentiment',
+    'prompt://voc/summary-generation': 'summary',
+  };
+
+  const type = typeMap[uri];
+  if (!type) {
+    throw new Error(`Unknown resource: ${uri}`);
+  }
+
+  const template = promptGenerator.getPromptTemplate(type);
+
+  return {
+    contents: [
+      {
+        uri,
+        mimeType: 'text/plain',
+        text: template,
+      },
+    ],
+  };
+});
+
+// ============================================================================
+// Tools: Prompt generation and result parsing
+// ============================================================================
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   logger.debug('Listing tools');
 
   const tools: any[] = [
     {
-      name: 'analyzeVOC',
+      name: 'generateVOCAnalysisPrompt',
       description:
-        'Analyzes VOC text using LLM to extract intent, priority, categories, sentiment, and generate summary. This is the main analysis tool.',
+        'Generate a unified prompt for VOC analysis. Use this prompt with Cursor\'s LLM (Claude/GPT) to analyze customer feedback. Returns a single comprehensive prompt that extracts intent, priority, category, sentiment, and summary.',
       inputSchema: {
         type: 'object',
         properties: {
           vocText: {
             type: 'string',
-            description: 'The VOC text to analyze (should be anonymized)',
-          },
-          metadata: {
-            type: 'object',
-            description: 'Optional metadata',
-            properties: {
-              customerId: { type: 'string' },
-              source: { type: 'string' },
-              timestamp: { type: 'string' },
-            },
+            description: 'The VOC text to analyze (should be anonymized first)',
           },
         },
         required: ['vocText'],
+      },
+    },
+    {
+      name: 'parseVOCAnalysis',
+      description:
+        'Parse the LLM response from VOC analysis prompt. Validates and structures the analysis result into a standardized format.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          llmResponse: {
+            type: 'string',
+            description: 'The raw response from LLM (JSON format expected)',
+          },
+        },
+        required: ['llmResponse'],
+      },
+    },
+    {
+      name: 'formatVOCAnalysis',
+      description:
+        'Format a parsed VOC analysis result into a human-readable summary. Useful for displaying analysis results to users.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          analysisResult: {
+            type: 'string',
+            description: 'The parsed VOC analysis result (JSON string)',
+          },
+        },
+        required: ['analysisResult'],
       },
     },
   ];
@@ -85,7 +172,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'findSimilarIssues',
         description:
-          'Finds similar Jira issues using embedding-based similarity search. Helps detect duplicate VOCs.',
+          'Find similar Jira issues using embedding-based similarity search. Helps detect duplicate VOCs.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -104,7 +191,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'indexIssue',
         description:
-          'Indexes a Jira issue for similarity search. Call this after creating a new issue.',
+          'Index a Jira issue for similarity search. Call this after creating a new issue.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -132,38 +219,97 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   logger.info('Tool called', { tool: name });
 
   try {
-    if (name === 'analyzeVOC') {
-      const { vocText, metadata } = args as {
-        vocText: string;
-        metadata?: any;
-      };
+    // ========================================================================
+    // Generate VOC Analysis Prompt
+    // ========================================================================
+    if (name === 'generateVOCAnalysisPrompt') {
+      const { vocText } = args as { vocText: string };
 
       if (!vocText) {
         throw new Error('Missing required parameter: vocText');
       }
 
-      const result = await vocAnalyzer.analyze(vocText);
+      const prompt = promptGenerator.generateUnifiedAnalysisPrompt(vocText);
 
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(
-              {
-                ...result,
-                metadata,
-              },
-              null,
-              2
-            ),
+            text: `✅ **VOC Analysis Prompt Generated**
+
+Use this prompt with your LLM (Claude/GPT) to analyze the VOC:
+
+---
+
+${prompt}
+
+---
+
+**Instructions:**
+1. Copy the prompt above
+2. Send it to your LLM
+3. Copy the LLM's response
+4. Use \`parseVOCAnalysis\` tool to parse the response
+
+**Note:** The prompt is optimized to return structured JSON that can be parsed automatically.`,
           },
         ],
       };
     }
 
+    // ========================================================================
+    // Parse VOC Analysis Result
+    // ========================================================================
+    if (name === 'parseVOCAnalysis') {
+      const { llmResponse } = args as { llmResponse: string };
+
+      if (!llmResponse) {
+        throw new Error('Missing required parameter: llmResponse');
+      }
+
+      const result = resultParser.parseUnifiedAnalysis(llmResponse);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    }
+
+    // ========================================================================
+    // Format VOC Analysis
+    // ========================================================================
+    if (name === 'formatVOCAnalysis') {
+      const { analysisResult } = args as { analysisResult: string };
+
+      if (!analysisResult) {
+        throw new Error('Missing required parameter: analysisResult');
+      }
+
+      const result = JSON.parse(analysisResult);
+      const formatted = resultParser.formatAnalysisSummary(result);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: formatted,
+          },
+        ],
+      };
+    }
+
+    // ========================================================================
+    // Find Similar Issues
+    // ========================================================================
     if (name === 'findSimilarIssues') {
       if (!similaritySearch) {
-        throw new Error('Similarity search not available (OpenAI API key required)');
+        throw new Error(
+          'Similarity search not available (OpenAI API key required)'
+        );
       }
 
       const { vocText, topK } = args as {
@@ -197,9 +343,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
+    // ========================================================================
+    // Index Issue
+    // ========================================================================
     if (name === 'indexIssue') {
       if (!similaritySearch) {
-        throw new Error('Similarity search not available (OpenAI API key required)');
+        throw new Error(
+          'Similarity search not available (OpenAI API key required)'
+        );
       }
 
       const { jiraKey, summary } = args as {
@@ -257,11 +408,11 @@ async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
 
-  logger.info('VOC Analysis Server started on stdio');
+  logger.info('VOC Analysis Server v2.0 started on stdio');
+  logger.info('Using Cursor LLM integration (no external API keys needed)');
 }
 
 main().catch((error) => {
   logger.error('Fatal error', error);
   process.exit(1);
 });
-

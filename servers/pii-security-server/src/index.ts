@@ -125,7 +125,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       );
 
       // Store mappings
-      mappingStore.store(sessionId, mappings);
+      mappingStore.storeMappings(sessionId, mappings);
 
       logger.info('PII anonymization completed', {
         sessionId,

@@ -2,7 +2,7 @@
 
 This document contains example prompts to use in Cursor chat for VOC processing automation.
 
-## Basic VOC Analysis
+## Basic VOC Analysis (Updated for Cursor LLM)
 
 ```
 I received a VOC from a customer:
@@ -13,14 +13,16 @@ I keep getting AUTH_001 error when trying to log in."
 
 Please:
 1. Anonymize any personal information
-2. Analyze the VOC (intent, priority, category)
-3. Check for similar existing issues
-4. Query the error context for AUTH_001
-5. Create a Jira ticket with all findings
-6. Restore the original text in the Jira comment
+2. Generate VOC analysis prompt
+3. Analyze the VOC using the prompt (Cursor's LLM will handle this)
+4. Parse the analysis result
+5. Check for similar existing issues
+6. Query the error context for AUTH_001
+7. Create a Jira ticket with all findings
+8. Restore the original text in the Jira comment
 ```
 
-## Complete Workflow Example
+## Complete Workflow Example (v2.0 - Cursor LLM Integration)
 
 ```
 Process this VOC end-to-end:
@@ -31,17 +33,19 @@ This is affecting all our transactions!"
 
 Steps:
 1. Use detectAndAnonymizePII to anonymize (session: voc-20260107-001)
-2. Use analyzeVOC to determine intent/priority/category
-3. Use findSimilarIssues to check duplicates
-4. Use getErrorContext for BILL_001
-5. Use queryUserStatus for the customer (if you can extract user ID)
-6. Use createJiraIssue with:
+2. Use generateVOCAnalysisPrompt to create analysis prompt
+3. Analyze with Cursor's LLM using the generated prompt
+4. Use parseVOCAnalysis to parse the LLM response
+5. Use findSimilarIssues to check duplicates
+6. Use getErrorContext for BILL_001
+7. Use queryUserStatus for the customer (if you can extract user ID)
+8. Use createJiraIssue with:
    - Project: VOC
    - Priority from analysis
    - Category-based auto-assignment
    - Send Teams notification
-7. Use restoreOriginalText and add as Jira comment
-8. Use clearSession to cleanup
+9. Use restoreOriginalText and add as Jira comment
+10. Use clearSession to cleanup
 ```
 
 ## Testing Individual Tools
@@ -56,14 +60,20 @@ Use the detectAndAnonymizePII tool with:
 Then restore it with restoreOriginalText using the same sessionId.
 ```
 
-### 2. Test VOC Analysis
+### 2. Test VOC Analysis (v2.0)
 
 ```
-Use the analyzeVOC tool to analyze:
+Test the new VOC analysis workflow:
 
-"The mobile app crashes every time I try to upload a photo. 
+VOC Text: "The mobile app crashes every time I try to upload a photo. 
 This has been happening for 3 days now and I can't use the app at all. 
 Very disappointed with this bug."
+
+Steps:
+1. Use generateVOCAnalysisPrompt to create the analysis prompt
+2. Copy the generated prompt and send it to me (I'll analyze it with my LLM)
+3. Use parseVOCAnalysis to parse my response
+4. Use formatVOCAnalysis to display the results nicely
 
 What intent, priority, and categories does it return?
 ```
@@ -92,7 +102,7 @@ Get the error context for these error codes:
 Compare the resolution steps for each.
 ```
 
-## Advanced Workflow: Duplicate Detection
+## Advanced Workflow: Duplicate Detection (v2.0)
 
 ```
 I have this VOC:
@@ -101,10 +111,11 @@ I have this VOC:
 
 Before creating a new ticket:
 1. Anonymize if needed
-2. Analyze the VOC
-3. Use findSimilarIssues to check if we already have similar tickets
-4. If similarity > 0.85, don't create new ticket, just add comment to existing one
-5. Otherwise, create new ticket and index it with indexIssue
+2. Generate analysis prompt and analyze with Cursor's LLM
+3. Parse the analysis result
+4. Use findSimilarIssues to check if we already have similar tickets
+5. If similarity > 0.85, don't create new ticket, just add comment to existing one
+6. Otherwise, create new ticket and index it with indexIssue
 ```
 
 ## Error Handling Example
@@ -147,14 +158,32 @@ Check the health of all systems:
 4. Report any issues found
 ```
 
+## New in v2.0: Cursor LLM Integration
+
+```
+Show me how the new VOC analysis works:
+
+1. Generate a prompt for analyzing this VOC:
+   "App is slow and crashes. Error PERF_001. Very frustrating!"
+
+2. Show me the generated prompt
+
+3. I'll analyze it with my built-in LLM
+
+4. Parse and format the results
+
+This workflow uses Cursor's LLM instead of external API calls!
+```
+
 ## Tips for Best Results
 
 1. **Always use unique session IDs** for PII anonymization (e.g., `voc-YYYYMMDD-NNN`)
-2. **Chain tool calls logically**: anonymize → analyze → create ticket → restore → cleanup
+2. **Chain tool calls logically**: anonymize → generate prompt → analyze → parse → create ticket → restore → cleanup
 3. **Check for duplicates** before creating new tickets to avoid spam
 4. **Include error context** in Jira descriptions for faster resolution
 5. **Use Teams notifications** for Critical/High priority issues
 6. **Clear sessions** after workflow completion to prevent memory leaks
+7. **NEW: No external LLM API keys needed** - Cursor's LLM handles all analysis
 
 ## Example Output
 

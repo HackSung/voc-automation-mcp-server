@@ -25,7 +25,7 @@ export class PIIMappingStore {
     logger.info('PIIMappingStore initialized', { ttl });
   }
 
-  store(sessionId: string, mappings: PIIMapping[]): void {
+  storeMappings(sessionId: string, mappings: PIIMapping[]): void {
     this.store.set(sessionId, {
       mappings,
       timestamp: Date.now(),

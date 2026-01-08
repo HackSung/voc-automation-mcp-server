@@ -21,8 +21,10 @@
 ✅ Cursor Editor 설치  
 ✅ Node.js 18 이상  
 ✅ Jira 계정 및 API 토큰  
-✅ OpenAI 또는 Anthropic API 키  
-✅ 환경변수 설정 완료  
+✅ ~~OpenAI 또는 Anthropic API 키~~ **더 이상 필요 없음! (v2.0)**  
+✅ 환경변수 설정 완료
+
+> **🎉 v2.0 업데이트**: VOC 분석에 Cursor의 LLM을 사용하므로 별도 LLM API 키가 필요 없습니다!  
 
 ### 설치 확인
 
@@ -40,8 +42,10 @@ Cursor 채팅창에서 다음을 입력:
 - `clearSession` - 세션 정리
 - `getStats` - 통계 조회
 
-#### VOC Analysis Server (3개)
-- `analyzeVOC` - VOC 분석
+#### VOC Analysis Server (5개) - **v2.0 업데이트**
+- `generateVOCAnalysisPrompt` - VOC 분석 프롬프트 생성
+- `parseVOCAnalysis` - 분석 결과 파싱
+- `formatVOCAnalysis` - 결과 포맷팅
 - `findSimilarIssues` - 유사 이슈 검색
 - `indexIssue` - 이슈 인덱싱
 
@@ -89,10 +93,12 @@ Cursor 채팅창에 다음과 같이 입력:
 
 처리 단계:
 1. 개인정보 비식별화 (세션ID: voc-20260107-001)
-2. VOC 분석
-3. Jira 티켓 생성 (프로젝트: VOC)
-4. 원문 복원해서 코멘트 추가
-5. 세션 정리
+2. VOC 분석 프롬프트 생성
+3. 프롬프트로 VOC 분석 (Cursor LLM 사용)
+4. 분석 결과 파싱
+5. Jira 티켓 생성 (프로젝트: VOC)
+6. 원문 복원해서 코멘트 추가
+7. 세션 정리
 ```
 
 ### 3단계: 결과 확인
