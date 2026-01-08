@@ -66,41 +66,43 @@ graph TB
     subgraph CursorEnv [Cursor Editor 환경]
         User[👤 사용자]
         CursorUI[Cursor Chat UI]
-        LLM[🤖 LLM Engine]
+        Agent[🤖 LLM Agent<br/>MCP 도구 호출]
+        CursorLLM[💬 Cursor LLM<br/>Claude/GPT<br/>API 키 불필요!]
     end
     
     subgraph MCPLayer [MCP Server Layer]
         direction LR
         PIIServer[🔒 PII Security<br/>Server]
-        VOCServer[🧠 VOC Analysis<br/>Server]
+        VOCServer[🧠 VOC Analysis<br/>Server<br/>프롬프트 생성/파싱]
         JiraServer[🎫 Jira Integration<br/>Server]
         APIServer[🔧 Internal API<br/>Server]
     end
     
     subgraph Storage [저장소]
         PIIMemory[(In-Memory<br/>PII Store<br/>TTL: 1h)]
-        EmbedCache[(Embedding<br/>Cache)]
+        EmbedCache[(Embedding<br/>Cache<br/>선택사항)]
     end
     
     subgraph External [외부 시스템]
         JiraCloud[Atlassian Jira]
-        OpenAI[OpenAI API]
+        OpenAI[OpenAI API<br/>임베딩 검색용<br/>선택사항]
         Teams[MS Teams]
         Legacy[레거시 시스템]
     end
     
     User -->|VOC 입력| CursorUI
-    CursorUI <-->|MCP Protocol| LLM
+    CursorUI <-->|MCP Protocol| Agent
+    Agent <-->|VOC 분석 요청| CursorLLM
     
-    LLM <-->|Tool Call| PIIServer
-    LLM <-->|Tool Call| VOCServer
-    LLM <-->|Tool Call| JiraServer
-    LLM <-->|Tool Call| APIServer
+    Agent <-->|Tool Call| PIIServer
+    Agent <-->|Tool Call| VOCServer
+    Agent <-->|Tool Call| JiraServer
+    Agent <-->|Tool Call| APIServer
     
     PIIServer <-->|저장/조회| PIIMemory
-    VOCServer <-->|캐싱| EmbedCache
+    VOCServer -.->|캐싱<br/>선택| EmbedCache
     
-    VOCServer <-->|Embedding API| OpenAI
+    VOCServer -.->|Embedding API<br/>선택| OpenAI
     JiraServer <-->|REST API| JiraCloud
     JiraServer -->|Webhook| Teams
     APIServer <-->|HTTP| Legacy
@@ -109,6 +111,8 @@ graph TB
     style MCPLayer fill:#fff4e1
     style Storage fill:#f0f0f0
     style External fill:#ffe1e1
+    style CursorLLM fill:#90EE90
+    style OpenAI fill:#FFE4B5
 ```
 
 ### 데이터 흐름 (VOC 처리 워크플로우)
@@ -118,9 +122,10 @@ sequenceDiagram
     autonumber
     participant User as 👤 사용자
     participant Cursor as Cursor UI
-    participant LLM as 🤖 LLM
+    participant LLM as 🤖 LLM Agent
     participant PII as 🔒 PII Server
     participant VOC as 🧠 VOC Server
+    participant CursorLLM as 💬 Cursor LLM
     participant API as 🔧 API Server
     participant Jira as 🎫 Jira Server
     participant External as 📮 외부 시스템
@@ -129,85 +134,118 @@ sequenceDiagram
     Cursor->>LLM: 프롬프트 전송
     
     rect rgb(255, 240, 240)
-        Note over LLM,PII: Phase 1: 개인정보 보호
-        LLM->>PII: detectAndAnonymizePII<br/>session: voc-001
-        PII->>PII: 정규식 매칭<br/>(이메일, 전화번호 등)
+        Note over LLM,PII: Phase 1: 개인정보 보호 (자동)
+        LLM->>PII: detectAndAnonymizePII<br/>session: voc-20260108-001
+        PII->>PII: 정규식 매칭<br/>(이메일, 전화, 생년월일 등)
         PII-->>LLM: 비식별화된 텍스트<br/>[EMAIL_001], [PHONE_001]
     end
     
     rect rgb(240, 255, 240)
-        Note over LLM,VOC: Phase 2: VOC 분석
-        LLM->>VOC: analyzeVOC<br/>(anonymized text)
-        VOC->>External: LLM API 호출
-        External-->>VOC: 분석 결과
-        VOC-->>LLM: 의도/우선순위/카테고리
+        Note over LLM,VOC: Phase 2: VOC 분석 프롬프트 생성
+        LLM->>VOC: generateVOCAnalysisPrompt<br/>(anonymized text)
+        VOC->>VOC: 통합 분석 프롬프트 생성<br/>(의도/우선순위/카테고리/감정/요약)
+        VOC-->>LLM: 분석 프롬프트 반환
         
-        LLM->>VOC: findSimilarIssues
-        VOC->>VOC: 임베딩 유사도 검색
-        VOC-->>LLM: 유사 이슈 목록
+        Note over LLM,CursorLLM: Cursor 내장 LLM 사용 (API 키 불필요!)
+        LLM->>CursorLLM: 생성된 프롬프트 전달
+        CursorLLM->>CursorLLM: VOC 텍스트 분석<br/>(Claude/GPT)
+        CursorLLM-->>LLM: JSON 형식 분석 결과
+        
+        LLM->>VOC: parseVOCAnalysis<br/>(LLM response)
+        VOC->>VOC: JSON 추출 및 검증<br/>(의도, 우선순위, 카테고리 등)
+        VOC-->>LLM: 구조화된 분석 결과
+        
+        opt OpenAI API 키 있는 경우
+            LLM->>VOC: findSimilarIssues<br/>(선택사항)
+            VOC->>External: OpenAI Embedding API
+            External-->>VOC: 임베딩 벡터
+            VOC->>VOC: 벡터 유사도 검색
+            VOC-->>LLM: 유사 이슈 목록
+        end
     end
     
     rect rgb(240, 240, 255)
-        Note over LLM,API: Phase 3: 컨텍스트 조회
-        LLM->>API: getErrorContext<br/>(error code)
-        API->>API: 에러 코드 매핑
-        API-->>LLM: 원인 및 해결방안
+        Note over LLM,API: Phase 3: 컨텍스트 조회 (선택)
+        opt 에러 코드 포함 시
+            LLM->>API: getErrorContext<br/>(error code)
+            API->>API: 에러 코드 해석<br/>(AUTH_001, BILL_001 등)
+            API-->>LLM: 원인 및 해결방안
+        end
         
-        opt 사용자 ID 있는 경우
-            LLM->>API: queryUserStatus
+        opt 사용자 ID 포함 시
+            LLM->>API: queryUserStatus<br/>(user ID)
             API->>External: 내부 API 호출
-            External-->>API: 사용자 상태
-            API-->>LLM: 상태 정보
+            External-->>API: 사용자 상태 정보
+            API-->>LLM: 계정 상태/이력
         end
     end
     
     rect rgb(255, 255, 240)
         Note over LLM,Jira: Phase 4: Jira 티켓 생성
-        LLM->>Jira: createJiraIssue<br/>(분석 결과 포함)
-        Jira->>Jira: 담당자 자동 할당
-        Jira->>External: Jira API
-        External-->>Jira: 티켓 생성 완료
-        Jira-->>LLM: VOC-123 생성
+        LLM->>Jira: createJiraIssue<br/>(분석 결과, 익명화 텍스트)
+        Jira->>Jira: 카테고리 기반<br/>담당자 자동 할당
+        Jira->>External: Jira REST API
+        External-->>Jira: 티켓 생성 (VOC-123)
+        Jira-->>LLM: 이슈 키 반환
         
-        LLM->>PII: restoreOriginalText<br/>session: voc-001
-        PII-->>LLM: 원본 텍스트
+        Note over LLM,PII: 안전한 저장소에만 원문 복원
+        LLM->>PII: restoreOriginalText<br/>session: voc-20260108-001
+        PII->>PII: 세션에서 원본 조회
+        PII-->>LLM: 원본 텍스트 반환
         
-        LLM->>Jira: addComment<br/>(원본 텍스트)
+        LLM->>Jira: addComment<br/>(원본 텍스트 + 연락처)
         Jira->>External: 코멘트 추가
         
-        opt Teams 알림 설정 시
-            Jira->>External: Teams Webhook
-            External-->>Jira: 알림 전송 완료
+        opt Teams Webhook 설정 시
+            Jira->>External: Teams 알림 전송<br/>(Adaptive Card)
+            External-->>Jira: 전송 완료
+        end
+        
+        opt 유사 이슈 검색 사용 시
+            LLM->>VOC: indexIssue<br/>(VOC-123, summary)
+            VOC->>External: OpenAI Embedding
+            VOC->>VOC: 벡터 DB 저장
+            VOC-->>LLM: 인덱싱 완료
         end
     end
     
     rect rgb(245, 245, 245)
-        Note over LLM,PII: Phase 5: 정리
-        LLM->>PII: clearSession<br/>session: voc-001
-        PII->>PII: 메모리에서 삭제
+        Note over LLM,PII: Phase 5: 세션 정리
+        LLM->>PII: clearSession<br/>session: voc-20260108-001
+        PII->>PII: 메모리에서 매핑 삭제<br/>(보안 강화)
         PII-->>LLM: 정리 완료
     end
     
-    LLM-->>Cursor: 최종 결과 요약
-    Cursor-->>User: ✅ 처리 완료<br/>Jira: VOC-123
+    LLM-->>Cursor: 처리 결과 요약
+    Cursor-->>User: ✅ 완료<br/>Jira: VOC-123<br/>담당자: 인증팀
 ```
 
 ### 주요 특징
 
 **🔒 보안 우선 설계**
-- 개인정보는 LLM에 절대 전송되지 않음
+- 개인정보는 LLM 분석 전에 자동 비식별화 (.cursorrules)
+- 익명화된 텍스트만 LLM에 전달 (원본 차단)
 - In-Memory 저장으로 디스크 유출 방지
-- 1시간 후 자동 삭제
+- 1시간 후 자동 삭제 (메모리 누수 방지)
+- 안전한 저장소(Jira)에만 원본 복원
 
-**⚡ 병렬 처리**
-- VOC 분석과 유사 이슈 검색 동시 실행
-- API 호출 재시도 로직 내장
+**💰 비용 효율적**
+- Cursor 내장 LLM 사용 (별도 API 키 불필요)
+- 통합 프롬프트로 5가지 분석을 1회 호출로 처리
+- OpenAI API는 선택사항 (유사 이슈 검색만 사용)
+- 프롬프트 최적화로 토큰 사용량 최소화
+
+**⚡ 효율적인 처리**
+- 3단계 워크플로우: 프롬프트 생성 → LLM 분석 → 결과 파싱
+- JSON 자동 추출 및 검증 (마크다운 코드 블록 지원)
+- API 호출 재시도 로직 내장 (exponential backoff)
 - 평균 처리 시간: 15-30초
 
 **🔄 확장 가능**
-- 독립적인 MCP 서버 구조
-- 새로운 서버 추가 용이
-- 각 서버 개별 배포 가능
+- 독립적인 MCP 서버 구조 (느슨한 결합)
+- 새로운 분석 항목 추가 용이 (프롬프트 템플릿)
+- 각 서버 개별 배포 가능 (Nexus 지원)
+- 서버별 독립적인 환경 변수 관리
 
 ## 🚀 빠른 시작
 
@@ -359,7 +397,7 @@ Cursor를 완전히 재시작한 후 채팅창에서 테스트:
 
 ## 💬 사용 예시
 
-### 기본 워크플로우
+### 기본 워크플로우 (자동 처리)
 
 Cursor 채팅창에 다음과 같이 입력하세요:
 
@@ -370,41 +408,115 @@ Cursor 채팅창에 다음과 같이 입력하세요:
 전화번호는 010-1234-5678입니다. AUTH_001 에러가 계속 나와요."
 
 처리 순서:
-1. 개인정보 비식별화 (세션: voc-20260107-001)
-2. VOC 분석 프롬프트 생성
-3. 프롬프트로 VOC 분석 (Cursor의 LLM 사용)
-4. 분석 결과 파싱
-5. 유사 이슈 검색
-6. AUTH_001 에러 컨텍스트 조회
-7. Jira 티켓 생성 (프로젝트: VOC, Teams 알림 전송)
-8. 원문 복원해서 Jira 코멘트 추가
+1. 개인정보 비식별화 (세션: voc-20260108-001)
+2. VOC 분석 프롬프트 생성 (generateVOCAnalysisPrompt)
+3. 생성된 프롬프트를 Cursor LLM으로 분석
+4. LLM 응답 파싱 및 검증 (parseVOCAnalysis)
+5. AUTH_001 에러 컨텍스트 조회 (getErrorContext)
+6. Jira 티켓 생성 (익명화된 텍스트로)
+7. 원본 복원 후 Jira 비공개 코멘트 추가
+8. Teams 알림 전송
 9. 세션 정리
 ```
 
-### 결과 예시
+### 단계별 실행 결과
 
+**1단계: 개인정보 비식별화** ✅
+```
+⚠️ 개인정보가 감지되었습니다. 보안을 위해 비식별화 처리합니다.
+감지된 정보: 이메일 1개, 전화번호 1개
+
+익명화된 텍스트:
+"로그인이 안돼요. 이메일은 [EMAIL_001]이고 
+전화번호는 [PHONE_001]입니다. AUTH_001 에러가 계속 나와요."
+```
+
+**2-4단계: VOC 분석** ✅
 ```json
 {
-  "처리완료": true,
-  "세션ID": "voc-20260107-001",
-  "개인정보감지": {
-    "이메일": 1,
-    "전화번호": 1
+  "intent": {
+    "type": "complaint",
+    "confidence": 0.95,
+    "reasoning": "AUTH_001 에러로 로그인 불가능, 불만 표현"
   },
-  "분석결과": {
-    "의도": "불만",
-    "우선순위": "High",
-    "카테고리": ["인증", "로그인"],
-    "신뢰도": 0.92
+  "priority": {
+    "level": "High",
+    "confidence": 0.88,
+    "reasoning": "인증 실패로 서비스 이용 불가",
+    "affectedUsers": "some"
   },
-  "유사이슈": 0,
-  "Jira티켓": {
-    "키": "VOC-123",
-    "URL": "https://your-company.atlassian.net/browse/VOC-123",
-    "담당자": "인증팀"
+  "category": {
+    "categories": ["authentication", "login"],
+    "primary": "authentication"
   },
-  "Teams알림": "발송완료"
+  "sentiment": {
+    "type": "negative",
+    "score": -0.7,
+    "reasoning": "로그인 실패로 인한 불만 표현"
+  },
+  "summary": "AUTH_001 에러로 로그인 불가 문제"
 }
+```
+
+**5단계: 에러 컨텍스트** ✅
+```json
+{
+  "errorCode": "AUTH_001",
+  "category": "인증",
+  "description": "인증 토큰 만료 또는 유효하지 않음",
+  "possibleCauses": [
+    "세션 만료 (30분 이상 미사용)",
+    "다른 기기에서 로그인",
+    "비밀번호 변경 후 재로그인 필요"
+  ],
+  "solutions": [
+    "로그아웃 후 재로그인",
+    "브라우저 캐시 및 쿠키 삭제",
+    "비밀번호 재설정"
+  ]
+}
+```
+
+**6-8단계: Jira 티켓 생성** ✅
+```json
+{
+  "issueKey": "VOC-123",
+  "url": "https://your-company.atlassian.net/browse/VOC-123",
+  "summary": "AUTH_001 에러로 로그인 불가 문제",
+  "priority": "High",
+  "assignee": {
+    "accountId": "xxx",
+    "displayName": "인증팀"
+  },
+  "labels": ["authentication", "login", "auth-error"],
+  "description": "익명화된 VOC 내용",
+  "comment": "원본 텍스트 및 연락처 정보 (비공개)"
+}
+```
+
+**최종 결과 요약** ✅
+```
+✅ VOC 처리가 완료되었습니다!
+
+📊 분석 결과:
+  - 의도: complaint (불만)
+  - 우선순위: High
+  - 카테고리: authentication (인증)
+  - 감정: negative (-0.7)
+
+🎫 Jira 티켓:
+  - 키: VOC-123
+  - 담당자: 인증팀
+  - URL: https://your-company.atlassian.net/browse/VOC-123
+
+🔒 개인정보 보호:
+  - 감지: 이메일 1개, 전화번호 1개
+  - 비식별화 완료
+  - 원본은 Jira 비공개 코멘트에만 저장
+  - 세션 정리 완료
+
+📢 알림:
+  - Teams 알림 전송 완료
 ```
 
 ## 📚 문서
