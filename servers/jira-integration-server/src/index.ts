@@ -53,8 +53,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             issueType: {
               type: 'string',
-              enum: ['Bug', 'Task', 'Story', 'Epic'],
-              description: 'Issue type',
+              enum: ['Bug', 'New Feature', 'Story', 'Epic', 'Task', 'Work', 'Defect_QA', 'Story_QA', 'Improvement'],
+              description: 'Issue type (VRBT 프로젝트 지원 타입)',
             },
             summary: {
               type: 'string',
@@ -66,8 +66,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             priority: {
               type: 'string',
-              enum: ['Critical', 'High', 'Medium', 'Low'],
-              description: 'Issue priority',
+              enum: ['Major', 'Blocker', 'Critical', 'Minor', 'Medium', 'Trivial', 'High', 'Low'],
+              description: 'Issue priority (VRBT 프로젝트 지원 우선순위)',
             },
             labels: {
               type: 'array',
