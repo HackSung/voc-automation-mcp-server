@@ -49,7 +49,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {
             project: {
               type: 'string',
-              description: "Project key (e.g., 'VOC', 'SUPPORT')",
+              description: "Project key (default: 'VRBT' from env). Override if needed.",
             },
             issueType: {
               type: 'string',
@@ -74,6 +74,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               items: { type: 'string' },
               description: 'Optional labels for categorization',
             },
+            components: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Optional Jira components (e.g., ["VOC", "Customer Support"])',
+            },
             category: {
               type: 'string',
               description:
@@ -88,7 +93,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: 'Send Teams notification (default: false)',
             },
           },
-          required: ['project', 'issueType', 'summary', 'description', 'priority'],
+          required: ['issueType', 'summary', 'description', 'priority'],
         },
       },
       {
@@ -159,12 +164,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const params = args as any;
 
       const result = await jiraClient.createIssue({
-        project: params.project,
+        project: params.project || config.jira.projectKey,
         issueType: params.issueType,
         summary: params.summary,
         description: params.description,
         priority: params.priority,
         labels: params.labels,
+        components: params.components,
         category: params.category,
         assignee: params.assignee,
       });

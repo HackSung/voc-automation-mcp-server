@@ -17,6 +17,7 @@ export interface CreateIssueParams {
   description: string;
   priority: string;
   labels?: string[];
+  components?: string[];
   category?: string;
   assignee?: string;
 }
@@ -47,6 +48,16 @@ export class JiraClient {
   }
 
   private getAuthHeader(): string {
+    // Check if token is already a Bearer token (for Jira Server/Data Center)
+    // Bearer tokens don't contain colons and are typically 40+ characters
+    if (this.config.apiToken.length > 30 && !this.config.apiToken.includes(':') && !this.config.apiToken.startsWith('ATATT')) {
+      // Likely a Bearer token for Jira Server
+      logger.debug('Using Bearer token authentication (Jira Server)');
+      return `Bearer ${this.config.apiToken}`;
+    }
+    
+    // Default: Basic Auth for Jira Cloud (Atlassian API tokens start with ATATT)
+    logger.debug('Using Basic authentication (Jira Cloud)');
     const token = Buffer.from(
       `${this.config.email}:${this.config.apiToken}`
     ).toString('base64');
@@ -76,6 +87,11 @@ export class JiraClient {
         labels: params.labels || [],
       },
     };
+
+    // Add components if specified
+    if (params.components && params.components.length > 0) {
+      payload.fields.components = params.components.map((name) => ({ name }));
+    }
 
     if (assignee) {
       payload.fields.assignee = { accountId: assignee };

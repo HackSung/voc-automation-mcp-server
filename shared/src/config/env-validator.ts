@@ -13,6 +13,7 @@ export interface EnvConfig {
     baseUrl: string;
     email: string;
     apiToken: string;
+    projectKey: string;
   };
   assignees: {
     auth?: string;
@@ -58,6 +59,7 @@ export function getEnvConfig(): EnvConfig {
       baseUrl: process.env.JIRA_BASE_URL || '',
       email: process.env.JIRA_EMAIL || '',
       apiToken: process.env.JIRA_API_TOKEN || '',
+      projectKey: process.env.JIRA_PROJECT_KEY || 'VRBT',
     },
     assignees: {
       auth: process.env.ASSIGNEE_AUTH,
