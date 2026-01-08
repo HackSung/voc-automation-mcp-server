@@ -71,8 +71,18 @@ export class JiraClient {
       priority: params.priority,
     });
 
-    // Auto-resolve assignee based on category
+    // Auto-resolve assignee
     let assignee = params.assignee;
+    
+    // 1순위: VOC 내용(제목, 설명)에서 키워드 감지
+    if (!assignee) {
+      assignee = this.assigneeResolver.resolveFromText(
+        params.summary,
+        params.description
+      ) || undefined;
+    }
+    
+    // 2순위: 카테고리 기반 할당
     if (!assignee && params.category) {
       assignee = this.assigneeResolver.resolve(params.category) || undefined;
     }

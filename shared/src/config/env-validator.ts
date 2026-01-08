@@ -20,6 +20,7 @@ export interface EnvConfig {
     billing?: string;
     perf?: string;
     ui?: string;
+    bizring?: string;
   };
   internalApi: {
     baseUrl: string;
@@ -66,6 +67,7 @@ export function getEnvConfig(): EnvConfig {
       billing: process.env.ASSIGNEE_BILLING,
       perf: process.env.ASSIGNEE_PERF,
       ui: process.env.ASSIGNEE_UI,
+      bizring: process.env.ASSIGNEE_BIZRING,
     },
     internalApi: {
       baseUrl: process.env.INTERNAL_API_BASE_URL || '',

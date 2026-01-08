@@ -5,9 +5,12 @@ const logger = new Logger('AssigneeResolver');
 export class AssigneeResolver {
   private readonly categoryToAssignee: Record<string, string>;
   private readonly defaultAssignee: string | null;
+  private readonly bizringAssignee: string | null;
 
   constructor() {
     const config = getEnvConfig();
+    
+    this.bizringAssignee = config.assignees.bizring || null;
 
     this.categoryToAssignee = {
       authentication: config.assignees.auth || '',
@@ -23,6 +26,11 @@ export class AssigneeResolver {
       ux: config.assignees.ui || '',
       'ui-ux': config.assignees.ui || '',
       interface: config.assignees.ui || '',
+      // V비즈링 관련 자동 할당
+      bizring: config.assignees.bizring || '',
+      '비즈링': config.assignees.bizring || '',
+      'v비즈링': config.assignees.bizring || '',
+      'vbizring': config.assignees.bizring || '',
     };
 
     // Remove empty values
@@ -78,6 +86,33 @@ export class AssigneeResolver {
       if (assignee) return assignee;
     }
     return this.defaultAssignee;
+  }
+
+  /**
+   * VOC 내용(제목, 설명)에서 키워드를 감지하여 담당자 자동 할당
+   * V비즈링 관련 키워드가 있으면 환경변수의 담당자로 할당
+   */
+  resolveFromText(summary: string, description: string): string | null {
+    if (!this.bizringAssignee) {
+      return null; // ASSIGNEE_BIZRING 환경변수가 설정되지 않음
+    }
+    
+    const text = `${summary} ${description}`.toLowerCase();
+    
+    // V비즈링 관련 키워드 감지
+    const bizringKeywords = ['비즈링', 'bizring', 'v비즈링', 'vbizring'];
+    for (const keyword of bizringKeywords) {
+      if (text.includes(keyword)) {
+        logger.info('V비즈링 관련 VOC 감지 - 담당자 자동 할당', {
+          keyword,
+          assignee: this.bizringAssignee,
+          summary: summary.substring(0, 50),
+        });
+        return this.bizringAssignee;
+      }
+    }
+    
+    return null;
   }
 }
 
