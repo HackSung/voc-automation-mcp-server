@@ -22,15 +22,17 @@ v2.0부터는 **별도의 LLM API 키 없이** Cursor에 연동된 LLM을 직접
 "로그인이 안돼요. 이메일은 hong.gildong@example.com이고 
 전화번호는 010-1234-5678입니다. AUTH_001 에러가 계속 나와요."
 
-처리 순서:
+🔒 처리 순서 (개인정보 보호 필수!):
 1. 개인정보 비식별화 (세션: voc-20260108-001)
+   → anonymizedText 저장
 2. VOC 분석 프롬프트 생성
-3. 생성된 프롬프트로 분석 수행
+   ⚠️ 반드시 anonymizedText 사용!
+3. 생성된 프롬프트로 분석 수행 (LLM에 개인정보 미전송)
 4. 분석 결과 파싱
 5. AUTH_001 에러 컨텍스트 조회
 6. Jira 티켓 생성 (프로젝트: VOC)
-7. 원문 복원해서 Jira 코멘트 추가
-8. 세션 정리
+7. 원문 복원해서 Jira 코멘트 추가 (안전한 저장소에만)
+8. 세션 정리 (메모리에서 완전 삭제)
 ```
 
 ### 3️⃣ 실행 과정
@@ -53,13 +55,23 @@ Output:
 ```
 
 #### Step 2: VOC 분석 프롬프트 생성
+
+⚠️ **중요: 반드시 익명화된 텍스트(anonymizedText)를 사용하세요!**
+
 ```
 Tool: generateVOCAnalysisPrompt
 Input:
-  - vocText: "로그인이 안돼요. 이메일은 [EMAIL_1]이고..."
+  - vocText: "로그인이 안돼요. 이메일은 [EMAIL_1]이고..."  # ← Step 1의 anonymizedText 사용!
 
 Output:
   - prompt: "You are a VOC analyst. Analyze the given customer feedback..."
+```
+
+❌ **잘못된 예시 - 개인정보 유출!**
+```
+Tool: generateVOCAnalysisPrompt
+Input:
+  - vocText: "로그인이 안돼요. 이메일은 hong.gildong@example.com이고..."  # ← 원본 사용 금지!
 ```
 
 #### Step 3: Cursor LLM으로 분석

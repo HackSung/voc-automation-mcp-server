@@ -1,0 +1,114 @@
+# VOC 처리 시 개인정보 보호 규칙
+
+## 🔒 개인정보 보호 필수 규칙
+
+VOC(고객 의견) 처리 시 **반드시** 다음 순서를 따라야 합니다:
+
+### 1단계: 자동 PII 감지 (최우선!)
+
+사용자가 다음과 같은 내용을 입력하면:
+- 이메일 주소 (예: xxx@xxx.com)
+- 전화번호 (예: 010-xxxx-xxxx, xxxx-xxxx)
+- 생년월일 (예: 19721206)
+- 주민등록번호 (예: xxxxxx-xxxxxxx)
+- 신용카드 번호
+
+**즉시 detectAndAnonymizePII를 호출하여 비식별화하세요!**
+
+```
+STEP 1 (필수):
+detectAndAnonymizePII({
+  text: "사용자가 입력한 원본 텍스트",
+  sessionId: "voc-YYYYMMDD-XXX"
+})
+→ anonymizedText를 저장하고 이후 모든 작업에 사용
+```
+
+### 2단계: 익명화된 텍스트만 사용
+
+LLM 분석, 검색, 처리 등 **모든 작업**에서:
+- ✅ anonymizedText 사용 ([EMAIL_001], [PHONE_001] 등)
+- ❌ 원본 텍스트 절대 사용 금지
+
+### 3단계: 안전한 저장소에만 복원
+
+Jira와 같은 **안전한 저장소에 저장할 때만** 원본 복원:
+
+```
+restoreOriginalText({
+  anonymizedText: "익명화된 텍스트",
+  sessionId: "동일한 세션 ID"
+})
+```
+
+### 4단계: 세션 정리
+
+작업 완료 후 반드시:
+```
+clearSession({ sessionId: "세션 ID" })
+```
+
+## ⚠️ 절대 금지 사항
+
+1. ❌ 원본 텍스트를 직접 generateVOCAnalysisPrompt에 전달
+2. ❌ 원본 텍스트를 로그에 출력
+3. ❌ 개인정보가 포함된 텍스트를 요약하거나 분석
+4. ❌ 세션 정리 없이 종료
+
+## ✅ 올바른 워크플로우 예시
+
+```typescript
+// 1. 사용자 입력에 개인정보 감지되면
+const piiResult = await detectAndAnonymizePII({
+  text: originalText,
+  sessionId: "voc-20260108-001"
+});
+
+// 2. 익명화된 텍스트로 분석
+const prompt = await generateVOCAnalysisPrompt({
+  vocText: piiResult.anonymizedText  // ← 여기가 핵심!
+});
+
+// 3. LLM 분석 (개인정보 없음)
+const analysis = await analyzeLLM(prompt);
+
+// 4. Jira 티켓 생성
+const ticket = await createJiraIssue(...);
+
+// 5. Jira에만 원본 추가
+const originalText = await restoreOriginalText({
+  anonymizedText: piiResult.anonymizedText,
+  sessionId: "voc-20260108-001"
+});
+
+await addComment({
+  issueKey: ticket.key,
+  comment: originalText
+});
+
+// 6. 정리
+await clearSession({ sessionId: "voc-20260108-001" });
+```
+
+## 🎯 자동 감지 패턴
+
+다음 패턴이 입력에 포함되어 있으면 **자동으로 비식별화를 제안**하세요:
+
+- 이메일: `xxx@xxx.com`
+- 전화번호: `010-xxxx-xxxx`, `xxxx xxxx`, `xxxx-xxxx`
+- 생년월일: `YYYYMMDD` (예: 19721206)
+- 주민번호: `xxxxxx-xxxxxxx`
+- 카드번호: `xxxx-xxxx-xxxx-xxxx`
+
+## 📝 사용자에게 알림
+
+개인정보가 감지되면 사용자에게 알려주세요:
+
+```
+⚠️ 개인정보가 감지되었습니다. 보안을 위해 비식별화 처리합니다.
+감지된 정보: 이메일 1개, 전화번호 1개, 생년월일 1개
+```
+
+## 🔐 보안 원칙
+
+**Zero Trust**: 모든 사용자 입력에는 개인정보가 포함될 수 있다고 가정하고 처리하세요.

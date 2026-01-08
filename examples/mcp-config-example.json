@@ -1,0 +1,40 @@
+{
+  "mcpServers": {
+    "voc-pii-security": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "-p",
+        "@sk-planet/voc-automation-mcp-server",
+        "voc-pii-security"
+      ],
+      "env": {}
+    },
+    "voc-analysis": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "-p",
+        "@sk-planet/voc-automation-mcp-server",
+        "voc-analysis"
+      ],
+      "env": {}
+    },
+    "voc-jira-integration": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "-p",
+        "@sk-planet/voc-automation-mcp-server",
+        "voc-jira-integration"
+      ],
+      "env": {
+        "JIRA_BASE_URL": "https://jira.skplanet.com",
+        "JIRA_EMAIL": "your-username@sk.com",
+        "JIRA_API_TOKEN": "your-jira-api-token",
+        "JIRA_PROJECT_KEY": "VRBT",
+        "ASSIGNEE_BIZRING": "1004359"
+      }
+    }
+  }
+}

@@ -11,15 +11,19 @@ I received a VOC from a customer:
 Account ID: 12345. Phone: 010-1234-5678. 
 I keep getting AUTH_001 error when trying to log in."
 
-Please:
-1. Anonymize any personal information
-2. Generate VOC analysis prompt
+🔒 IMPORTANT: Follow this exact order to protect PII:
+1. Anonymize any personal information (detectAndAnonymizePII)
+   → Save the anonymizedText from response
+2. Generate VOC analysis prompt using ANONYMIZED text
+   ⚠️ USE anonymizedText, NOT original text!
 3. Analyze the VOC using the prompt (Cursor's LLM will handle this)
+   ✅ LLM only sees [EMAIL_001], [PHONE_001] placeholders
 4. Parse the analysis result
 5. Check for similar existing issues
 6. Query the error context for AUTH_001
 7. Create a Jira ticket with all findings
-8. Restore the original text in the Jira comment
+8. Restore the original text ONLY for Jira comment (secure storage)
+9. Clear session (delete PII from memory)
 ```
 
 ## Complete Workflow Example (v2.0 - Cursor LLM Integration)

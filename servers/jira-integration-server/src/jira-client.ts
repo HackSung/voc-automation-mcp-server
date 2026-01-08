@@ -44,20 +44,22 @@ export class JiraClient {
 
   constructor(private config: JiraConfig) {
     this.assigneeResolver = new AssigneeResolver();
-    logger.info('JiraClient initialized', { baseUrl: config.baseUrl });
+    logger.info('JiraClient initialized (Jira Server/Data Center)', { 
+      baseUrl: config.baseUrl
+    });
   }
 
   private getAuthHeader(): string {
     // Check if token is already a Bearer token (for Jira Server/Data Center)
     // Bearer tokens don't contain colons and are typically 40+ characters
-    if (this.config.apiToken.length > 30 && !this.config.apiToken.includes(':') && !this.config.apiToken.startsWith('ATATT')) {
+    if (this.config.apiToken.length > 30 && !this.config.apiToken.includes(':')) {
       // Likely a Bearer token for Jira Server
       logger.debug('Using Bearer token authentication (Jira Server)');
       return `Bearer ${this.config.apiToken}`;
     }
     
-    // Default: Basic Auth for Jira Cloud (Atlassian API tokens start with ATATT)
-    logger.debug('Using Basic authentication (Jira Cloud)');
+    // Default: Basic Auth for Jira Server/Data Center
+    logger.debug('Using Basic authentication (Jira Server/Data Center)');
     const token = Buffer.from(
       `${this.config.email}:${this.config.apiToken}`
     ).toString('base64');
@@ -72,7 +74,7 @@ export class JiraClient {
     });
 
     // Auto-resolve assignee
-    let assignee = params.assignee;
+    let assignee: string | undefined = params.assignee;
     
     // 1순위: VOC 내용(제목, 설명)에서 키워드 감지
     if (!assignee) {
@@ -103,8 +105,13 @@ export class JiraClient {
       payload.fields.components = params.components.map((name) => ({ name }));
     }
 
-    if (assignee) {
-      payload.fields.assignee = { accountId: assignee };
+    // Add assignee (Jira Server/Data Center format only)
+    if (assignee && typeof assignee === 'string' && assignee.trim().length > 0) {
+      // Jira Server/Data Center uses name (username)
+      payload.fields.assignee = { name: assignee };
+      logger.debug('Adding assignee to payload (Jira Server format)', { assignee });
+    } else {
+      logger.debug('No valid assignee found, skipping assignee field');
     }
 
     const result = await retryWithBackoff(async () => {

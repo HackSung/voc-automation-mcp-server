@@ -1,5 +1,5 @@
 export interface PIIMatch {
-  type: 'email' | 'phone' | 'ssn' | 'name' | 'address' | 'card';
+  type: 'email' | 'phone' | 'ssn' | 'name' | 'address' | 'card' | 'birthDate';
   original: string;
   placeholder: string;
   position: { start: number; end: number };
@@ -16,14 +16,17 @@ export class PIIDetector {
     // Email pattern
     email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
 
-    // Korean phone numbers (010-1234-5678, 01012345678, +82-10-1234-5678)
-    phone: /(?:\+82[-\s]?|0)?(?:10|11|16|17|18|19)[-\s]?\d{3,4}[-\s]?\d{4}/g,
+    // Korean phone numbers (010-1234-5678, 01012345678, +82-10-1234-5678, 6344-9445, 6344 9445)
+    phone: /(?:(?:\+82[-\s]?|0)?(?:10|11|16|17|18|19)[-\s]?\d{3,4}[-\s]?\d{4}|\d{4}[\s-]\d{4})/g,
 
     // Korean SSN (주민번호: 123456-1234567 or 1234561234567)
     ssn: /\b\d{6}[-\s]?[1-4]\d{6}\b/g,
 
     // Credit card numbers (1234-5678-9012-3456 or 1234567890123456)
     card: /\b(?:\d{4}[-\s]?){3}\d{4}\b/g,
+
+    // Birth date (YYYYMMDD: 19721206)
+    birthDate: /\b(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\b/g,
   };
 
   detect(text: string): PIIMatch[] {
@@ -33,6 +36,7 @@ export class PIIDetector {
       phone: 0,
       ssn: 0,
       card: 0,
+      birthDate: 0,
     };
 
     for (const [type, pattern] of Object.entries(this.patterns)) {

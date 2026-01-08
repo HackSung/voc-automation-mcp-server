@@ -20,11 +20,13 @@
 
 ## 🎯 주요 기능
 
-### 개인정보 보호
-- 📧 이메일, 📱 전화번호, 🆔 주민번호, 💳 카드번호 자동 감지
-- 🔒 실시간 비식별화 처리 (LLM에 원문 전송 차단)
+### 개인정보 보호 ⭐ 중요!
+- 📧 이메일, 📱 전화번호, 🎂 생년월일, 🆔 주민번호, 💳 카드번호 자동 감지
+- 🔒 **자동 비식별화** (.cursorrules 설정으로 LLM 전송 전 차단)
+- 🛡️ 실시간 비식별화 처리 (LLM에 원문 전송 차단)
 - ♻️ 필요시에만 원문 복원 (Jira 저장용)
 - ⏱️ 1시간 후 자동 삭제 (메모리 누수 방지)
+- 📚 **[개인정보 보호 가이드](docs/PII_PROTECTION_GUIDE.md)** 필독!
 
 ### 지능형 분석 (Cursor LLM 활용)
 - 🤖 Cursor 연동 LLM으로 VOC 의도 분류 (버그/기능요청/문의/불만/피드백)
@@ -277,14 +279,16 @@ ASSIGNEE_UI=jira-account-id-for-ui-team
 
 ### 3단계: Cursor 설정
 
-#### 방법 A: 자동 설정 (권장)
+#### 3-1: MCP 서버 설정
+
+##### 방법 A: 자동 설정 (권장)
 
 ```bash
 # 설치 스크립트 실행 (향후 추가 예정)
 npm run setup:cursor
 ```
 
-#### 방법 B: 수동 설정
+##### 방법 B: 수동 설정
 
 `~/.cursor/mcp.json` 파일을 생성하거나 수정:
 
@@ -313,6 +317,26 @@ npm run setup:cursor
 
 > ⚠️ `<설치경로>`를 실제 설치 경로로 변경하세요.
 
+#### 3-2: 개인정보 자동 보호 설정 (중요! 🔒)
+
+프로젝트 루트에 `.cursorrules` 파일을 복사하여 Cursor가 자동으로 개인정보를 비식별화하도록 설정:
+
+```bash
+# 프로젝트 디렉토리에서
+cp <설치경로>/.cursorrules .cursorrules
+
+# 또는 홈 디렉토리에 전역 설정
+cp <설치경로>/.cursorrules ~/.cursorrules
+```
+
+이 설정은 Cursor의 LLM에게 다음을 지시합니다:
+- ✅ 사용자 입력에서 개인정보를 자동 감지
+- ✅ LLM 처리 전에 자동으로 비식별화
+- ✅ 익명화된 텍스트만 LLM에 전달
+- ✅ 안전한 저장소(Jira)에만 원본 복원
+
+**중요**: `.cursorrules` 파일이 없으면 사용자가 수동으로 비식별화를 요청해야 합니다!
+
 ### 4단계: Cursor 재시작 및 테스트
 
 Cursor를 완전히 재시작한 후 채팅창에서 테스트:
@@ -322,6 +346,16 @@ Cursor를 완전히 재시작한 후 채팅창에서 테스트:
 ```
 
 **성공 시**: 16개 이상의 도구가 표시됩니다 ✅
+
+**개인정보 보호 테스트:**
+
+```
+다음 텍스트에 개인정보가 있는지 확인하고 비식별화해줘:
+
+"이메일: test@example.com, 전화: 010-1234-5678, 생년월일: 19900101"
+```
+
+**기대 결과**: Cursor가 자동으로 `detectAndAnonymizePII`를 호출하고 익명화된 텍스트를 보여줍니다 ✅
 
 ## 💬 사용 예시
 
@@ -380,11 +414,12 @@ Cursor 채팅창에 다음과 같이 입력하세요:
 | 문서 | 내용 | 대상 |
 |------|------|------|
 | **[⚡ 빠른 시작](docs/QUICKSTART.md)** | 5분 설치 가이드 | 모든 사용자 |
+| **[🔒 개인정보 보호](docs/PII_PROTECTION_GUIDE.md)** | 자동 비식별화 설정 (필독!) | 모든 사용자 ⭐ |
 | **[📖 사용자 가이드](docs/USER_GUIDE.md)** | 실전 사용법, 예제, 트러블슈팅 | 일반 사용자 |
 | **[🔧 API 명세서](docs/API.md)** | 모든 Tool의 입력/출력 스키마 | 개발자 |
 | **[🚀 배포 가이드](docs/DEPLOYMENT.md)** | 설치, 설정, 운영 가이드 | 시스템 관리자 |
 | **[📦 Nexus 배포](docs/NEXUS_DEPLOYMENT.md)** | 사내 Nexus 배포 방법 | DevOps |
-| **[🔒 보안 문서](docs/SECURITY.md)** | PII 보호, 취약점 대응 | 보안 담당자 |
+| **[🔐 보안 문서](docs/SECURITY.md)** | PII 보호, 취약점 대응 | 보안 담당자 |
 
 ## 📦 Nexus 배포
 
@@ -410,26 +445,52 @@ npm pack --dry-run
 
 ### Nexus에 배포
 
-```bash
-# Nexus 인증 설정
-export NEXUS_AUTH_TOKEN=your-token
+관리자용:
 
-# 배포
+```bash
+# 1. Nexus 인증 설정
+npm config set registry https://nexus.skplanet.com/repository/npm-private/
+npm login
+
+# 2. 빌드 및 배포
+npm run build
 npm publish
 ```
 
-### 직원들의 설치 방법
+### 사용자 설치 방법 (NPX 사용)
 
-```bash
-# 1. Nexus 레지스트리 설정
-npm config set @your-company:registry https://nexus.your-company.com/repository/npm-private/
+사용자는 **별도 설치 없이** Cursor 설정만으로 사용 가능합니다:
 
-# 2. 패키지 설치
-npm install @your-company/voc-automation-mcp-server
+**1단계**: `~/.cursor/mcp.json` 또는 `~/.config/cursor/mcp.json`에 추가:
 
-# 3. Cursor 설정
-npm run setup:cursor
+```json
+{
+  "mcpServers": {
+    "voc-pii-security": {
+      "command": "npx",
+      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server", "voc-pii-security"]
+    },
+    "voc-analysis": {
+      "command": "npx",
+      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server", "voc-analysis"]
+    },
+    "voc-jira-integration": {
+      "command": "npx",
+      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server", "voc-jira-integration"],
+      "env": {
+        "JIRA_BASE_URL": "https://jira.skplanet.com",
+        "JIRA_EMAIL": "your-username@sk.com",
+        "JIRA_API_TOKEN": "your-token",
+        "ASSIGNEE_BIZRING": "1004359"
+      }
+    }
+  }
+}
 ```
+
+**2단계**: Cursor 재시작
+
+✨ 끝! 이제 VOC 처리 가능합니다.
 
 **상세 가이드**: [`docs/NEXUS_DEPLOYMENT.md`](docs/NEXUS_DEPLOYMENT.md) 참고
 
