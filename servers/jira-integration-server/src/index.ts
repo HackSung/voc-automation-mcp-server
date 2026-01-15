@@ -150,6 +150,40 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ['issueKey'],
         },
       },
+      {
+        name: 'getIssueAttachments',
+        description:
+          'Retrieves all attachments from a Jira issue including filenames, sizes, types, and download URLs. Supports images (PNG, JPG), videos (MP4), and documents.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            issueKey: {
+              type: 'string',
+              description: "Jira issue key (e.g., 'VRBT-10676')",
+            },
+          },
+          required: ['issueKey'],
+        },
+      },
+      {
+        name: 'downloadAttachment',
+        description:
+          'Downloads a Jira attachment by URL and returns it as base64-encoded data. Use this to analyze images, videos, or read file contents.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            attachmentUrl: {
+              type: 'string',
+              description: 'Attachment download URL from getIssueAttachments',
+            },
+            saveAsBase64: {
+              type: 'boolean',
+              description: 'Return as base64 string (default: true for compatibility)',
+            },
+          },
+          required: ['attachmentUrl'],
+        },
+      },
     ],
   };
 });
@@ -257,6 +291,73 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           },
         ],
       };
+    }
+
+    if (name === 'getIssueAttachments') {
+      const { issueKey } = args as { issueKey: string };
+
+      const result = await jiraClient.getAttachments(issueKey);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    }
+
+    if (name === 'downloadAttachment') {
+      const { attachmentUrl, saveAsBase64 } = args as {
+        attachmentUrl: string;
+        saveAsBase64?: boolean;
+      };
+
+      const data = await jiraClient.downloadAttachment(
+        attachmentUrl,
+        saveAsBase64 !== false // default to true
+      );
+
+      if (typeof data === 'string') {
+        // Base64 encoded
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  success: true,
+                  format: 'base64',
+                  data,
+                  note: 'Use this base64 data to save or analyze the file',
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } else {
+        // Buffer - convert to base64 for transport
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  success: true,
+                  format: 'base64',
+                  data: data.toString('base64'),
+                  size: data.length,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
     }
 
     throw new Error(`Unknown tool: ${name}`);

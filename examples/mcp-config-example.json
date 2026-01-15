@@ -35,6 +35,20 @@
         "JIRA_PROJECT_KEY": "VRBT",
         "ASSIGNEE_BIZRING": "1004359"
       }
+    },
+    "voc-bitbucket-integration": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "-p",
+        "@sk-planet/voc-automation-mcp-server",
+        "voc-bitbucket-integration"
+      ],
+      "env": {
+        "BITBUCKET_BASE_URL": "http://code.skplanet.com",
+        "BITBUCKET_TOKEN": "your-bitbucket-token",
+        "BITBUCKET_USERNAME": "your-username"
+      }
     }
   }
 }

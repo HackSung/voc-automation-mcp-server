@@ -27,6 +27,13 @@
         "/Users/1004359/voc-automation-mcp-server/servers/internal-api-server/dist/index.js"
       ],
       "env": {}
+    },
+    "bitbucket-integration": {
+      "command": "node",
+      "args": [
+        "/Users/1004359/voc-automation-mcp-server/servers/bitbucket-integration-server/dist/index.js"
+      ],
+      "env": {}
     }
   }
 }

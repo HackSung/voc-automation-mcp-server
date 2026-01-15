@@ -9,10 +9,11 @@
     "voc-pii-security": "./servers/pii-security-server/dist/index.js",
     "voc-analysis": "./servers/voc-analysis-server/dist/index.js",
     "voc-jira-integration": "./servers/jira-integration-server/dist/index.js",
-    "voc-internal-api": "./servers/internal-api-server/dist/index.js"
+    "voc-internal-api": "./servers/internal-api-server/dist/index.js",
+    "voc-bitbucket-integration": "./servers/bitbucket-integration-server/dist/index.js"
   },
   "scripts": {
-    "build": "npm run build --workspaces",
+    "build": "npm run build --workspace=shared && npm run build --workspaces --if-present",
     "dev": "npm run dev --workspaces",
     "test": "npm run test --workspaces",
     "clean": "rm -rf dist servers/*/dist shared/dist",

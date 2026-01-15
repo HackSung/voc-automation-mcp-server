@@ -50,13 +50,14 @@
 
 ## 🏗️ 시스템 구성
 
-본 시스템은 4개의 독립적인 MCP 서버로 구성됩니다:
+본 시스템은 5개의 독립적인 MCP 서버로 구성됩니다:
 
 | 서버 | 역할 | 주요 Tool |
 |------|------|-----------|
 | **PII Security** | 개인정보 보호 | `detectAndAnonymizePII`, `restoreOriginalText` |
 | **VOC Analysis** | 프롬프트 생성 & 파싱 | `generateVOCAnalysisPrompt`, `parseVOCAnalysis` |
 | **Jira Integration** | 티켓 자동화 | `createJiraIssue`, `addComment` |
+| **Bitbucket Integration** | 저장소 분석 | `getFileContent`, `searchCode`, `browseDirectory` |
 | **Internal API** | 레거시 연동 | `queryUserStatus`, `getErrorContext` |
 
 ### 시스템 아키텍처
@@ -345,6 +346,10 @@ npm run setup:cursor
       "command": "node",
       "args": ["<설치경로>/servers/jira-integration-server/dist/index.js"]
     },
+    "bitbucket-integration": {
+      "command": "node",
+      "args": ["<설치경로>/servers/bitbucket-integration-server/dist/index.js"]
+    },
     "internal-api": {
       "command": "node",
       "args": ["<설치경로>/servers/internal-api-server/dist/index.js"]
@@ -611,19 +616,20 @@ npm publish
 ```
 voc-automation-mcp-server/
 ├── servers/
-│   ├── pii-security-server/        # 개인정보 보호
-│   ├── voc-analysis-server/        # LLM 분석
-│   ├── jira-integration-server/    # Jira 연동
-│   └── internal-api-server/        # 내부 API 연동
-├── shared/                          # 공통 유틸리티
-├── docs/                            # 문서
-│   ├── USER_GUIDE.md               # 사용자 가이드 ⭐
-│   ├── API.md                      # API 명세서
-│   ├── DEPLOYMENT.md               # 배포 가이드
-│   └── SECURITY.md                 # 보안 문서
-└── examples/                        # 예제
-    ├── sample-voc.json             # 샘플 VOC 데이터
-    └── cursor-prompts.md           # 프롬프트 예제
+│   ├── pii-security-server/         # 개인정보 보호
+│   ├── voc-analysis-server/         # LLM 분석
+│   ├── jira-integration-server/     # Jira 연동
+│   ├── bitbucket-integration-server/ # Bitbucket 저장소 분석
+│   └── internal-api-server/         # 내부 API 연동
+├── shared/                           # 공통 유틸리티
+├── docs/                             # 문서
+│   ├── USER_GUIDE.md                # 사용자 가이드 ⭐
+│   ├── API.md                       # API 명세서
+│   ├── DEPLOYMENT.md                # 배포 가이드
+│   └── SECURITY.md                  # 보안 문서
+└── examples/                         # 예제
+    ├── sample-voc.json              # 샘플 VOC 데이터
+    └── cursor-prompts.md            # 프롬프트 예제
 ```
 
 ## 🔐 보안

@@ -22,6 +22,13 @@ export interface EnvConfig {
     ui?: string;
     bizring?: string;
   };
+  bitbucket: {
+    baseUrl: string;
+    username?: string;
+    token: string;
+    projectKey?: string;
+    repoSlug?: string;
+  };
   internalApi: {
     baseUrl: string;
     apiKey: string;
@@ -68,6 +75,13 @@ export function getEnvConfig(): EnvConfig {
       perf: process.env.ASSIGNEE_PERF,
       ui: process.env.ASSIGNEE_UI,
       bizring: process.env.ASSIGNEE_BIZRING,
+    },
+    bitbucket: {
+      baseUrl: process.env.BITBUCKET_BASE_URL || '',
+      username: process.env.BITBUCKET_USERNAME,
+      token: process.env.BITBUCKET_TOKEN || '',
+      projectKey: process.env.BITBUCKET_PROJECT_KEY,
+      repoSlug: process.env.BITBUCKET_REPO_SLUG,
     },
     internalApi: {
       baseUrl: process.env.INTERNAL_API_BASE_URL || '',

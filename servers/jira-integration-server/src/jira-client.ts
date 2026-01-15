@@ -39,6 +39,22 @@ export interface TransitionResult {
   currentStatus: string;
 }
 
+export interface Attachment {
+  id: string;
+  filename: string;
+  size: number;
+  mimeType: string;
+  created: string;
+  author: string;
+  content: string; // Download URL
+}
+
+export interface AttachmentsResult {
+  issueKey: string;
+  count: number;
+  attachments: Attachment[];
+}
+
 export class JiraClient {
   private assigneeResolver: AssigneeResolver;
 
@@ -280,6 +296,74 @@ export class JiraClient {
     }
 
     return response.json();
+  }
+
+  async getAttachments(issueKey: string): Promise<AttachmentsResult> {
+    logger.info('Fetching attachments', { issueKey });
+
+    const issue = await this.getIssue(issueKey);
+    const attachments = issue.fields.attachment || [];
+
+    const result: AttachmentsResult = {
+      issueKey,
+      count: attachments.length,
+      attachments: attachments.map((att: any) => ({
+        id: att.id,
+        filename: att.filename,
+        size: att.size,
+        mimeType: att.mimeType,
+        created: att.created,
+        author: att.author?.displayName || att.author?.name || 'Unknown',
+        content: att.content, // Download URL
+      })),
+    };
+
+    logger.info('Attachments fetched', { 
+      issueKey, 
+      count: result.count,
+      files: result.attachments.map(a => a.filename)
+    });
+
+    return result;
+  }
+
+  async downloadAttachment(
+    attachmentUrl: string,
+    saveAsBase64: boolean = false
+  ): Promise<Buffer | string> {
+    logger.info('Downloading attachment', { url: attachmentUrl });
+
+    const response = await retryWithBackoff(async () => {
+      const res = await fetch(attachmentUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: this.getAuthHeader(),
+        },
+      });
+
+      if (!res.ok) {
+        const err = new Error(
+          `Failed to download attachment: ${res.status} ${res.statusText}`
+        ) as RetryableError;
+        err.statusCode = res.status;
+        throw err;
+      }
+
+      return res;
+    });
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    
+    logger.info('Attachment downloaded', { 
+      size: buffer.length,
+      sizeKB: (buffer.length / 1024).toFixed(2)
+    });
+
+    if (saveAsBase64) {
+      return buffer.toString('base64');
+    }
+
+    return buffer;
   }
 }
 
