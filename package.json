@@ -6,11 +6,11 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "voc-pii-security": "./servers/pii-security-server/dist/index.js",
-    "voc-analysis": "./servers/voc-analysis-server/dist/index.js",
-    "voc-jira-integration": "./servers/jira-integration-server/dist/index.js",
-    "voc-internal-api": "./servers/internal-api-server/dist/index.js",
-    "voc-bitbucket-integration": "./servers/bitbucket-integration-server/dist/index.js"
+    "voc-pii-security": "./bin/voc-pii-security.js",
+    "voc-analysis": "./bin/voc-analysis.js",
+    "voc-jira-integration": "./bin/voc-jira-integration.js",
+    "voc-internal-api": "./bin/voc-internal-api.js",
+    "voc-bitbucket-integration": "./bin/voc-bitbucket-integration.js"
   },
   "scripts": {
     "build": "npm run build --workspace=shared && npm run build --workspaces --if-present",
@@ -79,7 +79,7 @@
   ],
   "license": "MIT",
   "publishConfig": {
-    "registry": "https://nexus.skplanet.com/repository/npm-private/",
+    "registry": "http://nexus.skplanet.com/repository/npm-internal/",
     "access": "restricted"
   },
   "os": [
