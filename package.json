@@ -1,6 +1,6 @@
 {
   "name": "@sk-planet/voc-automation-mcp-server",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "고객 VOC 처리 자동화 MCP 서버 - PII 보호, LLM 분석, Jira 연동",
   "type": "module",
   "main": "dist/index.js",
