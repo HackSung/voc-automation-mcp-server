@@ -25,6 +25,7 @@
     "shared"
   ],
   "files": [
+    "bin/**/*",
     "servers/*/dist/**/*",
     "servers/*/package.json",
     "shared/dist/**/*",
