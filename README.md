@@ -302,6 +302,7 @@ INTERNAL_API_KEY=your-api-key
 TEAMS_WEBHOOK_URL=https://outlook.office.com/webhook/...
 
 # 자동 담당자 할당
+ASSIGNEE_DEFAULT=jira-account-id-for-default-assignee
 ASSIGNEE_AUTH=jira-account-id-for-auth-team
 ASSIGNEE_BILLING=jira-account-id-for-billing-team
 ASSIGNEE_PERF=jira-account-id-for-perf-team

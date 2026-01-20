@@ -39,6 +39,7 @@ export interface EnvConfig {
     projectKey: string;
   };
   assignees: {
+    default?: string;
     auth?: string;
     billing?: string;
     perf?: string;
@@ -93,6 +94,7 @@ export function getEnvConfig(): EnvConfig {
       projectKey: process.env.JIRA_PROJECT_KEY || 'VRBT',
     },
     assignees: {
+      default: process.env.ASSIGNEE_DEFAULT,
       auth: process.env.ASSIGNEE_AUTH,
       billing: process.env.ASSIGNEE_BILLING,
       perf: process.env.ASSIGNEE_PERF,

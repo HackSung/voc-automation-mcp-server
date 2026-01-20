@@ -10,6 +10,7 @@ export class AssigneeResolver {
   constructor() {
     const config = getEnvConfig();
     
+    this.defaultAssignee = config.assignees.default || null;
     this.bizringAssignee = config.assignees.bizring || null;
 
     this.categoryToAssignee = {
@@ -40,10 +41,9 @@ export class AssigneeResolver {
       }
     });
 
-    this.defaultAssignee = null;
-
     logger.info('AssigneeResolver initialized', {
       mappings: Object.keys(this.categoryToAssignee).length,
+      hasDefault: Boolean(this.defaultAssignee),
     });
   }
 
@@ -93,22 +93,22 @@ export class AssigneeResolver {
    * V비즈링 관련 키워드가 있으면 환경변수의 담당자로 할당
    */
   resolveFromText(summary: string, description: string): string | null {
-    if (!this.bizringAssignee) {
-      return null; // ASSIGNEE_BIZRING 환경변수가 설정되지 않음
-    }
-    
     const text = `${summary} ${description}`.toLowerCase();
     
     // V비즈링 관련 키워드 감지
     const bizringKeywords = ['비즈링', 'bizring', 'v비즈링', 'vbizring'];
     for (const keyword of bizringKeywords) {
       if (text.includes(keyword)) {
+        // Prefer dedicated bizring assignee; fall back to default if configured
+        const assignee = this.bizringAssignee || this.defaultAssignee;
+        if (!assignee) return null;
+
         logger.info('V비즈링 관련 VOC 감지 - 담당자 자동 할당', {
           keyword,
-          assignee: this.bizringAssignee,
+          assignee,
           summary: summary.substring(0, 50),
         });
-        return this.bizringAssignee;
+        return assignee;
       }
     }
     
