@@ -59,11 +59,12 @@ INTERNAL_API_KEY=<your-internal-api-key>
 # MS Teams Notifications
 TEAMS_WEBHOOK_URL=<your-teams-webhook-url>
 
-# Auto-Assignment (Jira Account IDs)
-ASSIGNEE_AUTH=<accountId-for-auth-team>
-ASSIGNEE_BILLING=<accountId-for-billing-team>
-ASSIGNEE_PERF=<accountId-for-perf-team>
-ASSIGNEE_UI=<accountId-for-ui-team>
+# Auto-Assignment (Jira Server/Data Center: username / assignee.name)
+ASSIGNEE_AUTH=<jira-username-for-auth-team>
+ASSIGNEE_BILLING=<jira-username-for-billing-team>
+ASSIGNEE_SUBSCRIPTION=<jira-username-for-subscription-team>
+ASSIGNEE_PERF=<jira-username-for-perf-team>
+ASSIGNEE_UI=<jira-username-for-ui-team>
 
 # PII Session TTL (default: 3600000 = 1 hour)
 PII_SESSION_TTL=3600000

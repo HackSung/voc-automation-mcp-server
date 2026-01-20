@@ -53,7 +53,7 @@ npm publish
         "JIRA_EMAIL": "your-username@sk.com",
         "JIRA_API_TOKEN": "your-jira-api-token",
         "JIRA_PROJECT_KEY": "VRBT",
-        "ASSIGNEE_BIZRING": "1004359"
+        "ASSIGNEE_BIZRING": "your-jira-username"
       }
     }
   }

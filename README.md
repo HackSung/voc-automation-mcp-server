@@ -302,11 +302,13 @@ INTERNAL_API_KEY=your-api-key
 TEAMS_WEBHOOK_URL=https://outlook.office.com/webhook/...
 
 # 자동 담당자 할당
-ASSIGNEE_DEFAULT=jira-account-id-for-default-assignee
-ASSIGNEE_AUTH=jira-account-id-for-auth-team
-ASSIGNEE_BILLING=jira-account-id-for-billing-team
-ASSIGNEE_PERF=jira-account-id-for-perf-team
-ASSIGNEE_UI=jira-account-id-for-ui-team
+# Jira Server/Data Center 기준: username (assignee.name)
+ASSIGNEE_DEFAULT=jira-username-for-default-assignee
+ASSIGNEE_AUTH=jira-username-for-auth-team
+ASSIGNEE_BILLING=jira-username-for-billing-team
+ASSIGNEE_SUBSCRIPTION=jira-username-for-subscription-team
+ASSIGNEE_PERF=jira-username-for-perf-team
+ASSIGNEE_UI=jira-username-for-ui-team
 ```
 
 > 💡 **API 키 발급 방법은 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)를 참고하세요.**
@@ -610,7 +612,7 @@ npm publish
         "JIRA_BASE_URL": "https://jira.skplanet.com",
         "JIRA_EMAIL": "your-username@sk.com",
         "JIRA_API_TOKEN": "your-token",
-        "ASSIGNEE_BIZRING": "1004359"
+        "ASSIGNEE_BIZRING": "your-jira-username"
       }
     }
   }

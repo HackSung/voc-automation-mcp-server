@@ -201,7 +201,7 @@ export PATH="$PATH:$(npm config get prefix)/bin"
         "JIRA_BASE_URL": "https://jira.skplanet.com",
         "JIRA_EMAIL": "your-username@sk.com",
         "JIRA_API_TOKEN": "your-token",
-        "ASSIGNEE_BIZRING": "1004359"
+        "ASSIGNEE_BIZRING": "your-jira-username"
       }
     }
   }

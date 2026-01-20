@@ -2,6 +2,16 @@ import { Logger, getEnvConfig } from '@voc-automation/shared';
 
 const logger = new Logger('AssigneeResolver');
 
+/**
+ * IMPORTANT:
+ * - We intentionally do NOT hardcode real-user fallbacks.
+ * - If assignee env vars are missing, we prefer "no auto-assignment" over
+ *   assigning to the wrong person.
+ *
+ * NOTE:
+ * - Jira Server/Data Center uses `assignee.name` (username).
+ */
+
 export class AssigneeResolver {
   private readonly categoryToAssignee: Record<string, string>;
   private readonly defaultAssignee: string | null;
@@ -9,9 +19,12 @@ export class AssigneeResolver {
 
   constructor() {
     const config = getEnvConfig();
-    
-    this.defaultAssignee = config.assignees.default || null;
-    this.bizringAssignee = config.assignees.bizring || null;
+
+    const defaultAssignee = config.assignees.default?.trim();
+    const bizringAssignee = config.assignees.bizring?.trim();
+
+    this.defaultAssignee = defaultAssignee && defaultAssignee.length > 0 ? defaultAssignee : null;
+    this.bizringAssignee = bizringAssignee && bizringAssignee.length > 0 ? bizringAssignee : null;
 
     this.categoryToAssignee = {
       authentication: config.assignees.auth || '',
@@ -19,7 +32,8 @@ export class AssigneeResolver {
       login: config.assignees.auth || '',
       billing: config.assignees.billing || '',
       payment: config.assignees.billing || '',
-      subscription: config.assignees.billing || '',
+      // Prefer dedicated subscription assignee; fall back to billing for backward compatibility
+      subscription: config.assignees.subscription || config.assignees.billing || '',
       performance: config.assignees.perf || '',
       perf: config.assignees.perf || '',
       slow: config.assignees.perf || '',
@@ -52,8 +66,21 @@ export class AssigneeResolver {
 
     const normalizedCategory = category
       .toLowerCase()
-      .replace(/[_\s]/g, '-')
+      .replace(/[_\s/\\]+/g, '-')
+      .replace(/-+/g, '-')
       .trim();
+
+    // Special-case: Bizring categories should never fall back to default assignee.
+    // If ASSIGNEE_BIZRING isn't configured, it's safer to leave unassigned.
+    const bizringCategoryMarkers = ['비즈링', 'bizring', 'v비즈링', 'vbizring'];
+    const isBizringCategory = bizringCategoryMarkers.some((m) => normalizedCategory.includes(m));
+    if (isBizringCategory && !this.bizringAssignee) {
+      logger.warn('bizring 카테고리이지만 ASSIGNEE_BIZRING 미설정 - 자동 할당 생략', {
+        category,
+        normalizedCategory,
+      });
+      return null;
+    }
 
     // Direct match
     if (this.categoryToAssignee[normalizedCategory]) {
@@ -99,9 +126,16 @@ export class AssigneeResolver {
     const bizringKeywords = ['비즈링', 'bizring', 'v비즈링', 'vbizring'];
     for (const keyword of bizringKeywords) {
       if (text.includes(keyword)) {
-        // Prefer dedicated bizring assignee; fall back to default if configured
-        const assignee = this.bizringAssignee || this.defaultAssignee;
-        if (!assignee) return null;
+        // Only assign if explicit bizring assignee is configured.
+        // Falling back to default here can easily mis-assign Bizring VOCs.
+        const assignee = this.bizringAssignee;
+        if (!assignee) {
+          logger.warn('V비즈링 키워드 감지했지만 ASSIGNEE_BIZRING 미설정 - 자동 할당 생략', {
+            keyword,
+            summary: summary.substring(0, 50),
+          });
+          return null;
+        }
 
         logger.info('V비즈링 관련 VOC 감지 - 담당자 자동 할당', {
           keyword,

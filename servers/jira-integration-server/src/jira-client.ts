@@ -4,6 +4,37 @@ import { AssigneeResolver } from './assignee-resolver.js';
 
 const logger = new Logger('JiraClient');
 
+/**
+ * Jira Server/Data Center description field commonly interprets text as Wiki Markup.
+ * In that markup, lines starting with `##` are nested ordered list items (causing `1. 1 ...`).
+ * We normalize common Markdown headings to Jira wiki headings (h1./h2./...).
+ *
+ * We avoid transforming inside fenced code blocks.
+ */
+function normalizeDescriptionForJira(description: string): string {
+  const lines = (description ?? '').replace(/\r\n/g, '\n').split('\n');
+  let inCodeBlock = false;
+
+  const out = lines.map((line) => {
+    const trimmed = line.trimStart();
+    if (trimmed.startsWith('```')) {
+      inCodeBlock = !inCodeBlock;
+      return line;
+    }
+    if (inCodeBlock) return line;
+
+    const match = /^(\s*)(#{1,6})\s+(.*)$/.exec(line);
+    if (!match) return line;
+
+    const indent = match[1] ?? '';
+    const level = (match[2] ?? '').length;
+    const title = match[3] ?? '';
+    return `${indent}h${level}. ${title}`.trimEnd();
+  });
+
+  return out.join('\n');
+}
+
 export interface JiraConfig {
   baseUrl: string;
   email: string;
@@ -82,6 +113,49 @@ export class JiraClient {
     return `Basic ${token}`;
   }
 
+  private async setAssignee(issueKey: string, assignee: string): Promise<void> {
+    const trimmed = assignee.trim();
+    if (!trimmed) return;
+
+    await retryWithBackoff(async () => {
+      const response = await fetch(
+        `${this.config.baseUrl}/rest/api/2/issue/${issueKey}/assignee`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: this.getAuthHeader(),
+            'Content-Type': 'application/json',
+          },
+          // Jira Server/Data Center uses name (username)
+          body: JSON.stringify({ name: trimmed }),
+        }
+      );
+
+      // Jira often returns 204 No Content for successful assignee updates
+      if (!response.ok) {
+        const error = await response.text();
+        const err = new Error(
+          `Failed to set assignee: ${response.status} - ${error}`
+        ) as RetryableError;
+        err.statusCode = response.status;
+        throw err;
+      }
+    });
+  }
+
+  private async getAssigneeDisplayName(issueKey: string): Promise<string | null> {
+    const response = await fetch(
+      `${this.config.baseUrl}/rest/api/2/issue/${issueKey}?fields=assignee`,
+      {
+        method: 'GET',
+        headers: { Authorization: this.getAuthHeader() },
+      }
+    );
+    if (!response.ok) return null;
+    const data = (await response.json()) as any;
+    return data?.fields?.assignee?.displayName || null;
+  }
+
   async createIssue(params: CreateIssueParams): Promise<CreateIssueResult> {
     logger.info('Creating Jira issue', {
       project: params.project,
@@ -109,7 +183,7 @@ export class JiraClient {
       fields: {
         project: { key: params.project },
         summary: params.summary,
-        description: params.description,
+        description: normalizeDescriptionForJira(params.description),
         issuetype: { name: params.issueType },
         priority: { name: params.priority },
         labels: params.labels || [],
@@ -159,6 +233,38 @@ export class JiraClient {
       issueKey: result.key,
       issueId: result.id,
     });
+
+    // Jira project defaults / automation can override assignee on create.
+    // To make our mapping effective, re-apply assignee once after creation and verify once.
+    if (assignee && assignee.trim().length > 0) {
+      try {
+        await this.setAssignee(result.key, assignee);
+        const finalAssignee = await this.getAssigneeDisplayName(result.key);
+        logger.info('Assignee applied after create', {
+          issueKey: result.key,
+          assigneeRequested: assignee,
+          assigneeFinal: finalAssignee,
+        });
+
+        // If still not applied (e.g., racing automation), retry once.
+        if (finalAssignee && finalAssignee !== assignee) {
+          await new Promise((r) => setTimeout(r, 1000));
+          await this.setAssignee(result.key, assignee);
+          const finalAssignee2 = await this.getAssigneeDisplayName(result.key);
+          logger.info('Assignee re-applied after delay', {
+            issueKey: result.key,
+            assigneeRequested: assignee,
+            assigneeFinal: finalAssignee2,
+          });
+        }
+      } catch (e) {
+        logger.warn('Failed to apply assignee after create (mapping may be overridden)', {
+          issueKey: result.key,
+          assigneeRequested: assignee,
+          error: (e as Error).message,
+        });
+      }
+    }
 
     return {
       issueKey: result.key,

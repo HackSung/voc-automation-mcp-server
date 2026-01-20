@@ -546,14 +546,14 @@ VOC: "I can't login. My email is john@example.com"
 
 **A**: 두 가지 방법이 있습니다.
 
-1. **환경변수 설정** (`.env`):
+1. **환경변수 설정** (`.env`, Jira Server/Data Center 기준 username):
    ```bash
-   ASSIGNEE_AUTH=jira-account-id
+   ASSIGNEE_AUTH=jira-username
    ```
 
 2. **수동 지정**:
    ```
-   assignee: "specific-account-id"
+   assignee: "specific-jira-username"
    ```
 
 ### Q4: OpenAI 대신 Anthropic을 쓸 수 있나요?

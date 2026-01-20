@@ -8,7 +8,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { JiraClient } from './jira-client.js';
 import { TeamsNotifier } from './teams-notifier.js';
-import { Logger, validateEnv, getEnvConfig } from '@voc-automation/shared';
+import { Logger, validateEnv, getEnvConfig, getLoadedEnvPath } from '@voc-automation/shared';
 
 const logger = new Logger('JiraIntegrationServer');
 
@@ -59,6 +59,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       {
+        name: 'getJiraEnvDebug',
+        description:
+          'Returns safe debug info about env loading and assignee configuration (no secrets).',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+          required: [],
+        },
+      },
+      {
         name: 'createJiraIssue',
         description:
           'Creates a new Jira issue with automatic assignee resolution based on category. Returns issue key, ID, and URL.',
@@ -72,7 +82,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             issueType: {
               type: 'string',
               enum: ['Bug', 'New Feature', 'Story', 'Epic', 'Task', 'Work', 'Defect_QA', 'Story_QA', 'Improvement'],
-              description: 'Issue type (default: Work)',
+              description:
+                'Issue type. For VOC-created issues this server always uses "Work" (input is ignored).',
             },
             summary: {
               type: 'string',
@@ -104,7 +115,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             assignee: {
               type: 'string',
-              description: 'Optional: Jira account ID to override auto-assignment',
+              description:
+                'Optional: Jira username (Server/Data Center: assignee.name) to override auto-assignment',
             },
             sendNotification: {
               type: 'boolean',
@@ -215,12 +227,50 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     // Ensure Jira credentials are available only when needed
     const { config, jiraClient } = requireJiraClient();
 
+    if (name === 'getJiraEnvDebug') {
+      const loadedEnvPath = getLoadedEnvPath();
+      const has = (key: string) => Boolean(process.env[key] && process.env[key]!.trim().length > 0);
+
+      const result = {
+        loadedEnvPath,
+        jira: {
+          baseUrl: config.jira.baseUrl ? '[set]' : '[missing]',
+          projectKey: config.jira.projectKey || '[missing]',
+          email: config.jira.email ? '[set]' : '[missing]',
+          apiToken: config.jira.apiToken ? '[set]' : '[missing]',
+        },
+        assignees: {
+          ASSIGNEE_DEFAULT: has('ASSIGNEE_DEFAULT'),
+          ASSIGNEE_AUTH: has('ASSIGNEE_AUTH'),
+          ASSIGNEE_BILLING: has('ASSIGNEE_BILLING'),
+          ASSIGNEE_SUBSCRIPTION: has('ASSIGNEE_SUBSCRIPTION'),
+          ASSIGNEE_PERF: has('ASSIGNEE_PERF'),
+          ASSIGNEE_UI: has('ASSIGNEE_UI'),
+          ASSIGNEE_BIZRING: has('ASSIGNEE_BIZRING'),
+        },
+        hints: [
+          'If loadedEnvPath is null, set VOC_ENV_PATH to an explicit .env path or inject env vars in ~/.cursor/mcp.json.',
+          'For Jira Server/Data Center, ASSIGNEE_* should be Jira username (assignee.name).',
+        ],
+      };
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    }
+
     if (name === 'createJiraIssue') {
       const params = args as any;
 
       const result = await jiraClient.createIssue({
         project: params.project || config.jira.projectKey,
-        issueType: params.issueType || 'Work',
+        // VOC -> Jira issues must be created as Work (ignore any provided issueType).
+        issueType: 'Work',
         summary: params.summary,
         description: params.description,
         priority: params.priority,
@@ -302,7 +352,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 summary: issue.fields.summary,
                 status: issue.fields.status.name,
                 priority: issue.fields.priority?.name,
-                assignee: issue.fields.assignee?.displayName,
+                assignee: issue.fields.assignee?.displayName ?? null,
+                assigneeUsername: issue.fields.assignee?.name ?? null,
                 created: issue.fields.created,
                 updated: issue.fields.updated,
               },
