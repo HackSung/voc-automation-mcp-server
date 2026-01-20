@@ -11,15 +11,34 @@ import { Logger, validateEnv, getEnvConfig } from '@voc-automation/shared';
 
 const logger = new Logger('BitbucketIntegrationServer');
 
-// Validate required environment variables
-validateEnv(['BITBUCKET_BASE_URL', 'BITBUCKET_TOKEN']);
+/**
+ * NOTE:
+ * Do NOT validate env at process startup.
+ * Cursor loads MCP servers globally, so some workspaces won't have Bitbucket env configured.
+ * Instead, validate lazily when a tool is called and return an MCP tool error (without crashing).
+ */
+let bitbucketClient: BitbucketClient | null = null;
 
-const config = getEnvConfig();
-const bitbucketClient = new BitbucketClient({
-  baseUrl: config.bitbucket.baseUrl,
-  token: config.bitbucket.token,
-  username: config.bitbucket.username,
-});
+function requireBitbucketClient(): BitbucketClient {
+  try {
+    validateEnv(['BITBUCKET_BASE_URL', 'BITBUCKET_TOKEN']);
+  } catch (e) {
+    const baseMsg = (e as Error).message;
+    throw new Error(
+      `${baseMsg}\n\nHow to fix:\n- Set these in the current project's .env\n- Or set them in ~/.cursor/mcp.json under bitbucket-integration.env\n`
+    );
+  }
+
+  if (bitbucketClient) return bitbucketClient;
+
+  const config = getEnvConfig();
+  bitbucketClient = new BitbucketClient({
+    baseUrl: config.bitbucket.baseUrl,
+    token: config.bitbucket.token,
+    username: config.bitbucket.username,
+  });
+  return bitbucketClient;
+}
 
 const server = new Server(
   {
@@ -285,6 +304,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   logger.info('Tool called', { tool: name });
 
   try {
+    // Ensure Bitbucket credentials are available only when needed
+    const bitbucketClient = requireBitbucketClient();
+
     if (name === 'listRepositories') {
       const { projectKey } = args as { projectKey: string };
 

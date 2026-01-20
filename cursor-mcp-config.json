@@ -1,40 +1,39 @@
 {
   "mcpServers": {
     "pii-security": {
-      "command": "node",
-      "args": [
-        "/Users/1004359/voc-automation-mcp-server/servers/pii-security-server/dist/index.js"
-      ],
+      "command": "npx",
+      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-pii-security"],
       "env": {}
     },
     "voc-analysis": {
-      "command": "node",
-      "args": [
-        "/Users/1004359/voc-automation-mcp-server/servers/voc-analysis-server/dist/index.js"
-      ],
+      "command": "npx",
+      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-analysis"],
       "env": {}
     },
     "jira-integration": {
-      "command": "node",
-      "args": [
-        "/Users/1004359/voc-automation-mcp-server/servers/jira-integration-server/dist/index.js"
-      ],
-      "env": {}
-    },
-    "internal-api": {
-      "command": "node",
-      "args": [
-        "/Users/1004359/voc-automation-mcp-server/servers/internal-api-server/dist/index.js"
-      ],
-      "env": {}
+      "command": "npx",
+      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-jira-integration"],
+      "env": {
+        "JIRA_BASE_URL": "https://jira.skplanet.com",
+        "JIRA_EMAIL": "your-email@sk.com",
+        "JIRA_API_TOKEN": "YOUR_JIRA_API_TOKEN"
+      }
     },
     "bitbucket-integration": {
-      "command": "node",
-      "args": [
-        "/Users/1004359/voc-automation-mcp-server/servers/bitbucket-integration-server/dist/index.js"
-      ],
-      "env": {}
+      "command": "npx",
+      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-bitbucket-integration"],
+      "env": {
+        "BITBUCKET_BASE_URL": "http://code.skplanet.com",
+        "BITBUCKET_TOKEN": "YOUR_BITBUCKET_TOKEN"
+      }
+    },
+    "internal-api": {
+      "command": "npx",
+      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-internal-api"],
+      "env": {
+        "INTERNAL_API_BASE_URL": "YOUR_INTERNAL_API_BASE_URL",
+        "INTERNAL_API_KEY": "YOUR_INTERNAL_API_KEY"
+      }
     }
   }
 }
-

@@ -1,12 +1,35 @@
 import { config } from 'dotenv';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { join } from 'path';
 
-// Load environment variables from root .env
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const rootDir = join(__dirname, '../../..');
-config({ path: join(rootDir, '.env') });
+/**
+ * Load environment variables for MCP servers.
+ *
+ * When executed via `npx`, the actual process cwd may be a generic directory
+ * (or even a temp directory). npm typically sets `INIT_CWD` to the directory
+ * where `npx`/`npm exec` was invoked (often the Cursor workspace root), so we
+ * try that first.
+ *
+ * Precedence:
+ * - Explicit path overrides (VOC_ENV_PATH / DOTENV_CONFIG_PATH / ENV_FILE)
+ * - <INIT_CWD>/.env
+ * - <PWD>/.env
+ * - <process.cwd()>/.env
+ */
+const explicitEnvPath =
+  process.env.VOC_ENV_PATH || process.env.DOTENV_CONFIG_PATH || process.env.ENV_FILE;
+
+const candidateEnvPaths: Array<string | undefined> = [
+  explicitEnvPath,
+  process.env.INIT_CWD ? join(process.env.INIT_CWD, '.env') : undefined,
+  process.env.PWD ? join(process.env.PWD, '.env') : undefined,
+  join(process.cwd(), '.env'),
+];
+
+for (const p of candidateEnvPaths) {
+  if (!p) continue;
+  const result = config({ path: p });
+  if (!result.error) break;
+}
 
 export interface EnvConfig {
   jira: {

@@ -161,6 +161,6 @@ ls -la servers/*/dist/index.js
 
 ## 연락처
 
-- **담당자**: 이학성 (cannan@sk.com)
+- **담당자**: VOC Automation Team (your-email@your-company.com)
 - **Slack**: #voc-automation
 - **Jira**: VRBT 프로젝트

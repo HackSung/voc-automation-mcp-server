@@ -12,16 +12,34 @@ import { Logger, validateEnv, getEnvConfig } from '@voc-automation/shared';
 
 const logger = new Logger('JiraIntegrationServer');
 
-// Validate required environment variables
-validateEnv(['JIRA_BASE_URL', 'JIRA_EMAIL', 'JIRA_API_TOKEN']);
-
-const config = getEnvConfig();
-const jiraClient = new JiraClient({
-  baseUrl: config.jira.baseUrl,
-  email: config.jira.email,
-  apiToken: config.jira.apiToken,
-});
 const teamsNotifier = new TeamsNotifier();
+let jiraClient: JiraClient | null = null;
+
+/**
+ * NOTE:
+ * Do NOT validate env at process startup. Some Cursor workspaces won't configure Jira env.
+ * Validate lazily when a tool is called to avoid crashing the MCP server.
+ */
+function requireJiraClient(): { config: ReturnType<typeof getEnvConfig>; jiraClient: JiraClient } {
+  try {
+    validateEnv(['JIRA_BASE_URL', 'JIRA_EMAIL', 'JIRA_API_TOKEN']);
+  } catch (e) {
+    const baseMsg = (e as Error).message;
+    throw new Error(
+      `${baseMsg}\n\nHow to fix:\n- Set these in the current project's .env\n- Or set them in ~/.cursor/mcp.json under jira-integration.env\n`
+    );
+  }
+
+  const config = getEnvConfig();
+  if (!jiraClient) {
+    jiraClient = new JiraClient({
+      baseUrl: config.jira.baseUrl,
+      email: config.jira.email,
+      apiToken: config.jira.apiToken,
+    });
+  }
+  return { config, jiraClient };
+}
 
 const server = new Server(
   {
@@ -194,6 +212,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   logger.info('Tool called', { tool: name });
 
   try {
+    // Ensure Jira credentials are available only when needed
+    const { config, jiraClient } = requireJiraClient();
+
     if (name === 'createJiraIssue') {
       const params = args as any;
 

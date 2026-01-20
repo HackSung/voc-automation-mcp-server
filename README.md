@@ -250,29 +250,23 @@ sequenceDiagram
 
 ## 🚀 빠른 시작
 
-### 1단계: 패키지 설치
+### 1단계: 준비 (사내 Nexus + npx 권장)
 
 #### NPM 레지스트리 설정 (사내 Nexus 사용 시)
 
 ```bash
-# .npmrc 파일 생성 또는 수정
-echo "registry=https://your-nexus-url/repository/npm-group/" >> .npmrc
+# 레지스트리를 사내 Nexus로 설정
+npm config set registry http://nexus.skplanet.com/repository/npm-internal/
 ```
 
-#### 패키지 다운로드 및 설치
+> 💡 **권장 방식**: Cursor가 `npx`로 서버를 실행하도록 설정하면, 별도 설치 없이 최신 패키지를 내려받아 실행합니다.
+
+#### (개발자) 소스 빌드가 필요한 경우에만
 
 ```bash
-# Nexus에서 다운로드
-npm install @your-company/voc-automation-mcp-server
-
-# 또는 Git에서 직접 클론
 git clone https://github.com/your-company/voc-automation-mcp-server.git
 cd voc-automation-mcp-server
-
-# 의존성 설치
 npm install
-
-# 빌드
 npm run build
 ```
 
@@ -329,36 +323,53 @@ npm run setup:cursor
 
 ##### 방법 B: 수동 설정
 
-`~/.cursor/mcp.json` 파일을 생성하거나 수정:
+`~/.cursor/mcp.json` 파일을 생성하거나 수정합니다. (이 저장소의 `cursor-mcp-config.json`은 참고용 예시입니다.)
 
 ```json
 {
   "mcpServers": {
     "pii-security": {
-      "command": "node",
-      "args": ["<설치경로>/servers/pii-security-server/dist/index.js"]
+      "command": "npx",
+      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-pii-security"],
+      "env": {}
     },
     "voc-analysis": {
-      "command": "node",
-      "args": ["<설치경로>/servers/voc-analysis-server/dist/index.js"]
+      "command": "npx",
+      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-analysis"],
+      "env": {}
     },
     "jira-integration": {
-      "command": "node",
-      "args": ["<설치경로>/servers/jira-integration-server/dist/index.js"]
+      "command": "npx",
+      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-jira-integration"],
+      "env": {
+        "JIRA_BASE_URL": "https://jira.skplanet.com",
+        "JIRA_EMAIL": "your-email@sk.com",
+        "JIRA_API_TOKEN": "YOUR_JIRA_API_TOKEN"
+      }
     },
     "bitbucket-integration": {
-      "command": "node",
-      "args": ["<설치경로>/servers/bitbucket-integration-server/dist/index.js"]
+      "command": "npx",
+      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-bitbucket-integration"],
+      "env": {
+        "BITBUCKET_BASE_URL": "http://code.skplanet.com",
+        "BITBUCKET_TOKEN": "YOUR_BITBUCKET_TOKEN"
+      }
     },
     "internal-api": {
-      "command": "node",
-      "args": ["<설치경로>/servers/internal-api-server/dist/index.js"]
+      "command": "npx",
+      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-internal-api"],
+      "env": {
+        "INTERNAL_API_BASE_URL": "YOUR_INTERNAL_API_BASE_URL",
+        "INTERNAL_API_KEY": "YOUR_INTERNAL_API_KEY"
+      }
     }
   }
 }
 ```
 
-> ⚠️ `<설치경로>`를 실제 설치 경로로 변경하세요.
+> ⚠️ **중요**: `npx` 사용 시 `-p`를 포함해야 합니다. (`-p`가 없으면 `could not determine executable to run` 에러가 날 수 있습니다.)
+>
+> 💡 여러 프로젝트(여러 Cursor 창)를 오갈 때는, 프로젝트 루트 `.env`에 의존하기보다 `mcp.json`의 `env`에 직접 주입(옵션 A)하는 방식이 가장 안정적입니다.
 
 #### 3-2: 개인정보 자동 보호 설정 (중요! 🔒)
 
@@ -644,11 +655,8 @@ voc-automation-mcp-server/
 
 ### 서버가 시작되지 않아요
 ```bash
-# 로그 확인
-node servers/pii-security-server/dist/index.js
-
-# 환경변수 확인
-cat .env | grep JIRA
+# 패키지/실행 확인 (예: Jira MCP)
+npx -y -p @sk-planet/voc-automation-mcp-server@latest voc-jira-integration
 ```
 
 ### Cursor에서 도구가 보이지 않아요
@@ -684,7 +692,7 @@ MIT License - 사내 사용 목적으로 자유롭게 사용 가능합니다.
 
 ---
 
-**Version**: 1.0.0  
-**Last Updated**: 2026-01-07  
+**Version**: 1.0.7  
+**Last Updated**: 2026-01-20  
 **Maintained by**: VOC Automation Team
 

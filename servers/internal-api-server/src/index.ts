@@ -12,15 +12,33 @@ import { Logger, validateEnv, getEnvConfig } from '@voc-automation/shared';
 
 const logger = new Logger('InternalAPIServer');
 
-// Validate required environment variables
-validateEnv(['INTERNAL_API_BASE_URL', 'INTERNAL_API_KEY']);
-
-const config = getEnvConfig();
-const apiClient = new InternalAPIClient({
-  baseUrl: config.internalApi.baseUrl,
-  apiKey: config.internalApi.apiKey,
-});
 const errorResolver = new ErrorResolver();
+let apiClient: InternalAPIClient | null = null;
+
+/**
+ * NOTE:
+ * Do NOT validate env at process startup. Some Cursor workspaces won't configure internal API env.
+ * Validate lazily when a tool is called to avoid crashing the MCP server.
+ */
+function requireInternalApiClient(): InternalAPIClient {
+  try {
+    validateEnv(['INTERNAL_API_BASE_URL', 'INTERNAL_API_KEY']);
+  } catch (e) {
+    const baseMsg = (e as Error).message;
+    throw new Error(
+      `${baseMsg}\n\nHow to fix:\n- Set these in the current project's .env\n- Or set them in ~/.cursor/mcp.json under internal-api.env\n`
+    );
+  }
+
+  if (apiClient) return apiClient;
+
+  const config = getEnvConfig();
+  apiClient = new InternalAPIClient({
+    baseUrl: config.internalApi.baseUrl,
+    apiKey: config.internalApi.apiKey,
+  });
+  return apiClient;
+}
 
 const server = new Server(
   {
@@ -128,6 +146,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   logger.info('Tool called', { tool: name });
 
   try {
+    // Ensure internal API credentials are available only when needed
+    const apiClient = requireInternalApiClient();
+
     if (name === 'queryUserStatus') {
       const { userId, queryType } = args as {
         userId: string;
