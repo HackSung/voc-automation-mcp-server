@@ -1,88 +1,12 @@
-import { existsSync } from 'fs';
-import { config } from 'dotenv';
-import { dirname, join, resolve } from 'path';
 import { Logger } from '../utils/logger.js';
 
 const logger = new Logger('EnvValidator');
 
-/**
- * Load environment variables for MCP servers.
- *
- * When executed via `npx`, the actual process cwd may be a generic directory
- * (or even a temp directory). npm typically sets `INIT_CWD` to the directory
- * where `npx`/`npm exec` was invoked (often the Cursor workspace root), so we
- * try that first.
- *
- * Precedence:
- * - Explicit path overrides (VOC_ENV_PATH / DOTENV_CONFIG_PATH / ENV_FILE)
- * - <INIT_CWD>/.env
- * - <PWD>/.env
- * - <process.cwd()>/.env
- */
-const explicitEnvPath =
-  process.env.VOC_ENV_PATH || process.env.DOTENV_CONFIG_PATH || process.env.ENV_FILE;
-
-function findUpEnv(startDir: string, filename: string = '.env', maxDepth: number = 25): string | null {
-  let current = resolve(startDir);
-  for (let i = 0; i < maxDepth; i++) {
-    const candidate = join(current, filename);
-    if (existsSync(candidate)) return candidate;
-    const parent = dirname(current);
-    if (parent === current) break;
-    current = parent;
-  }
-  return null;
-}
-
-const candidateRoots: Array<string | undefined> = [
-  // Explicit override always wins
-  explicitEnvPath,
-  // Common npm/npx roots
-  process.env.INIT_CWD,
-  process.env.PWD,
-  process.env.npm_config_local_prefix,
-  process.env.npm_config_prefix,
-  // IDE-specific (best-effort)
-  process.env.VSCODE_CWD,
-  process.env.CURSOR_WORKSPACE_PATH,
-  process.env.CURSOR_WORKSPACE_DIR,
-  // Fallback to actual cwd
-  process.cwd(),
-];
-
-let loadedFrom: string | null = null;
-
-for (const root of candidateRoots) {
-  if (!root) continue;
-
-  // If user passed a direct file path, use it as-is.
-  const directPath = root.endsWith('.env') ? root : null;
-  const envPath = directPath || findUpEnv(root, '.env');
-  if (!envPath) continue;
-
-  const result = config({ path: envPath });
-  if (!result.error) {
-    loadedFrom = envPath;
-    break;
-  }
-}
-
-if (loadedFrom) {
-  logger.info('Loaded .env file', { path: loadedFrom });
-} else {
-  logger.warn('No .env file loaded; relying on process.env only', {
-    tried: candidateRoots.filter(Boolean),
-    hint: 'Set VOC_ENV_PATH (or DOTENV_CONFIG_PATH / ENV_FILE) to an explicit .env path, or provide env vars directly in Cursor mcp.json',
-  });
-}
-
-/**
- * Returns the resolved path of the loaded .env file (if any).
- * Safe to expose: contains only filesystem path, no secrets.
- */
-export function getLoadedEnvPath(): string | null {
-  return loadedFrom;
-}
+// NOTE:
+// This project intentionally does NOT load env files at runtime.
+// MCP servers should receive all required environment variables via
+// `~/.cursor/mcp.json` (mcpServers.<server>.env) or the process environment.
+logger.info('Environment source: process.env only (no env file loading)');
 
 export interface EnvConfig {
   jira: {

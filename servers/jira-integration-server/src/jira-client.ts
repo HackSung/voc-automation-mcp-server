@@ -23,13 +23,17 @@ function normalizeDescriptionForJira(description: string): string {
     }
     if (inCodeBlock) return line;
 
-    const match = /^(\s*)(#{1,6})\s+(.*)$/.exec(line);
+    // Jira wiki markup treats leading `#` as ordered-list markers.
+    // Some descriptions may indent headings (e.g. "  ## VOC"), which Jira still interprets as a list.
+    // Normalize Markdown headings to Jira wiki headings, and force them to start at column 0:
+    // "  ## VOC" -> "h2. VOC" (NOT "  h2. VOC")
+    const match = /^\s*(#{1,6})\s+(.*)$/.exec(line);
     if (!match) return line;
 
-    const indent = match[1] ?? '';
-    const level = (match[2] ?? '').length;
-    const title = match[3] ?? '';
-    return `${indent}h${level}. ${title}`.trimEnd();
+    const level = (match[1] ?? '').length;
+    const title = (match[2] ?? '').trim();
+    if (!title) return line;
+    return `h${level}. ${title}`.trimEnd();
   });
 
   return out.join('\n');
@@ -58,6 +62,10 @@ export interface CreateIssueResult {
   issueId: string;
   url: string;
   created: boolean;
+  assigneeRequested?: string | null;
+  assigneeFinalDisplayName?: string | null;
+  assigneeFinalUsername?: string | null;
+  assigneeApplied?: boolean;
 }
 
 export interface AddCommentResult {
@@ -88,12 +96,47 @@ export interface AttachmentsResult {
 
 export class JiraClient {
   private assigneeResolver: AssigneeResolver;
+  private assigneeFieldMode: 'name' | 'accountId' = 'name';
+  private assigneeFieldModeDetected = false;
 
   constructor(private config: JiraConfig) {
     this.assigneeResolver = new AssigneeResolver();
     logger.info('JiraClient initialized (Jira Server/Data Center)', { 
       baseUrl: config.baseUrl
     });
+  }
+
+  private buildAssigneeField(assignee: string): { name: string } | { accountId: string } {
+    const trimmed = assignee.trim();
+    return this.assigneeFieldMode === 'accountId'
+      ? { accountId: trimmed }
+      : { name: trimmed };
+  }
+
+  private async detectAssigneeFieldMode(): Promise<void> {
+    if (this.assigneeFieldModeDetected) return;
+    this.assigneeFieldModeDetected = true;
+
+    try {
+      const response = await fetch(`${this.config.baseUrl}/rest/api/2/serverInfo`, {
+        method: 'GET',
+        headers: { Authorization: this.getAuthHeader() },
+      });
+      if (!response.ok) return;
+      const data = (await response.json()) as any;
+      const deploymentType = String(data?.deploymentType || '').toLowerCase();
+      if (deploymentType === 'cloud') {
+        this.assigneeFieldMode = 'accountId';
+        logger.info('Detected Jira Cloud; using assignee.accountId mode');
+      } else if (deploymentType) {
+        this.assigneeFieldMode = 'name';
+        logger.info('Detected Jira deployment; using assignee.name mode', { deploymentType });
+      }
+    } catch (e) {
+      logger.debug('Failed to detect Jira deployment type; defaulting to assignee.name mode', {
+        error: (e as Error).message,
+      });
+    }
   }
 
   private getAuthHeader(): string {
@@ -117,33 +160,81 @@ export class JiraClient {
     const trimmed = assignee.trim();
     if (!trimmed) return;
 
-    await retryWithBackoff(async () => {
-      const response = await fetch(
-        `${this.config.baseUrl}/rest/api/2/issue/${issueKey}/assignee`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization: this.getAuthHeader(),
-            'Content-Type': 'application/json',
-          },
-          // Jira Server/Data Center uses name (username)
-          body: JSON.stringify({ name: trimmed }),
-        }
-      );
+    await this.detectAssigneeFieldMode();
 
-      // Jira often returns 204 No Content for successful assignee updates
-      if (!response.ok) {
+    const tryModes: Array<'name' | 'accountId'> =
+      this.assigneeFieldMode === 'accountId' ? ['accountId', 'name'] : ['name', 'accountId'];
+
+    let lastError: { status: number; body: string; mode: 'name' | 'accountId' } | null = null;
+
+    for (const mode of tryModes) {
+      const result = await retryWithBackoff(async () => {
+        const body = mode === 'accountId' ? { accountId: trimmed } : { name: trimmed };
+        const response = await fetch(
+          `${this.config.baseUrl}/rest/api/2/issue/${issueKey}/assignee`,
+          {
+            method: 'PUT',
+            headers: {
+              Authorization: this.getAuthHeader(),
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+          }
+        );
+
+        if (response.ok) {
+          return { ok: true as const };
+        }
+
         const error = await response.text();
-        const err = new Error(
-          `Failed to set assignee: ${response.status} - ${error}`
-        ) as RetryableError;
-        err.statusCode = response.status;
+        const status = response.status;
+
+        // If forbidden/unauthorized, no reason to try other modes.
+        if (status === 401 || status === 403) {
+          const err = new Error(
+            `Failed to set assignee (auth/permission): ${status} - ${error}`
+          ) as RetryableError;
+          err.statusCode = status;
+          throw err;
+        }
+
+        // For "bad request" style errors, allow trying the other mode.
+        if (status === 400 || status === 404) {
+          return { ok: false as const, status, error, mode };
+        }
+
+        const err = new Error(`Failed to set assignee: ${status} - ${error}`) as RetryableError;
+        err.statusCode = status;
         throw err;
+      });
+
+      if (result.ok) {
+        // If we succeeded with the fallback mode, lock it in for future calls.
+        if (this.assigneeFieldMode !== mode) {
+          this.assigneeFieldMode = mode;
+          logger.info('Assignee mode updated after successful set', { mode });
+        }
+        return;
       }
-    });
+
+      // result.ok === false (400/404). Record and try next mode.
+      lastError = { status: result.status, body: result.error, mode: result.mode };
+    }
+
+    if (lastError) {
+      const err = new Error(
+        `Failed to set assignee after trying modes (${tryModes.join(
+          ','
+        )}). Last error (${lastError.mode}): ${lastError.status} - ${lastError.body}`
+      ) as RetryableError;
+      err.statusCode = lastError.status;
+      throw err;
+    }
   }
 
-  private async getAssigneeDisplayName(issueKey: string): Promise<string | null> {
+  private async getAssigneeInfo(
+    issueKey: string
+  ): Promise<{ displayName: string | null; username: string | null }> {
     const response = await fetch(
       `${this.config.baseUrl}/rest/api/2/issue/${issueKey}?fields=assignee`,
       {
@@ -151,9 +242,12 @@ export class JiraClient {
         headers: { Authorization: this.getAuthHeader() },
       }
     );
-    if (!response.ok) return null;
+    if (!response.ok) return { displayName: null, username: null };
     const data = (await response.json()) as any;
-    return data?.fields?.assignee?.displayName || null;
+    return {
+      displayName: data?.fields?.assignee?.displayName || null,
+      username: data?.fields?.assignee?.name || null,
+    };
   }
 
   async createIssue(params: CreateIssueParams): Promise<CreateIssueResult> {
@@ -197,9 +291,8 @@ export class JiraClient {
 
     // Add assignee (Jira Server/Data Center format only)
     if (assignee && typeof assignee === 'string' && assignee.trim().length > 0) {
-      // Jira Server/Data Center uses name (username)
-      payload.fields.assignee = { name: assignee };
-      logger.debug('Adding assignee to payload (Jira Server format)', { assignee });
+      payload.fields.assignee = this.buildAssigneeField(assignee);
+      logger.debug('Adding assignee to payload', { assignee, mode: this.assigneeFieldMode });
     } else {
       logger.debug('No valid assignee found, skipping assignee field');
     }
@@ -236,27 +329,39 @@ export class JiraClient {
 
     // Jira project defaults / automation can override assignee on create.
     // To make our mapping effective, re-apply assignee once after creation and verify once.
+    let assigneeFinalDisplayName: string | null = null;
+    let assigneeFinalUsername: string | null = null;
+    let assigneeApplied = false;
     if (assignee && assignee.trim().length > 0) {
       try {
         await this.setAssignee(result.key, assignee);
-        const finalAssignee = await this.getAssigneeDisplayName(result.key);
+        const finalAssignee = await this.getAssigneeInfo(result.key);
+        assigneeFinalDisplayName = finalAssignee.displayName;
+        assigneeFinalUsername = finalAssignee.username;
         logger.info('Assignee applied after create', {
           issueKey: result.key,
           assigneeRequested: assignee,
-          assigneeFinal: finalAssignee,
+          assigneeFinalDisplayName: finalAssignee.displayName,
+          assigneeFinalUsername: finalAssignee.username,
         });
 
-        // If still not applied (e.g., racing automation), retry once.
-        if (finalAssignee && finalAssignee !== assignee) {
+        // If still not applied (e.g., racing automation / permission), retry once.
+        // Compare username (assignee.name) to requested username.
+        if (finalAssignee.username && finalAssignee.username !== assignee) {
           await new Promise((r) => setTimeout(r, 1000));
           await this.setAssignee(result.key, assignee);
-          const finalAssignee2 = await this.getAssigneeDisplayName(result.key);
+          const finalAssignee2 = await this.getAssigneeInfo(result.key);
+          assigneeFinalDisplayName = finalAssignee2.displayName;
+          assigneeFinalUsername = finalAssignee2.username;
           logger.info('Assignee re-applied after delay', {
             issueKey: result.key,
             assigneeRequested: assignee,
-            assigneeFinal: finalAssignee2,
+            assigneeFinalDisplayName: finalAssignee2.displayName,
+            assigneeFinalUsername: finalAssignee2.username,
           });
         }
+
+        assigneeApplied = Boolean(assigneeFinalUsername && assigneeFinalUsername === assignee);
       } catch (e) {
         logger.warn('Failed to apply assignee after create (mapping may be overridden)', {
           issueKey: result.key,
@@ -271,6 +376,10 @@ export class JiraClient {
       issueId: result.id,
       url: `${this.config.baseUrl}/browse/${result.key}`,
       created: true,
+      assigneeRequested: assignee ?? null,
+      assigneeFinalDisplayName,
+      assigneeFinalUsername,
+      assigneeApplied,
     };
   }
 
@@ -289,7 +398,7 @@ export class JiraClient {
             Authorization: this.getAuthHeader(),
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ body: comment }),
+          body: JSON.stringify({ body: normalizeDescriptionForJira(comment) }),
         }
       );
 

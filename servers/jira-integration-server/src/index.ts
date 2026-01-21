@@ -8,7 +8,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { JiraClient } from './jira-client.js';
 import { TeamsNotifier } from './teams-notifier.js';
-import { Logger, validateEnv, getEnvConfig, getLoadedEnvPath } from '@voc-automation/shared';
+import { Logger, validateEnv, getEnvConfig } from '@voc-automation/shared';
 
 const logger = new Logger('JiraIntegrationServer');
 
@@ -26,7 +26,7 @@ function requireJiraClient(): { config: ReturnType<typeof getEnvConfig>; jiraCli
   } catch (e) {
     const baseMsg = (e as Error).message;
     throw new Error(
-      `${baseMsg}\n\nHow to fix:\n- Set these in the current project's .env\n- Or set them in ~/.cursor/mcp.json under jira-integration.env\n`
+      `${baseMsg}\n\nHow to fix:\n- Set these in ~/.cursor/mcp.json under jira-integration.env\n- Or export them in the environment that launches Cursor\n`
     );
   }
 
@@ -228,11 +228,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { config, jiraClient } = requireJiraClient();
 
     if (name === 'getJiraEnvDebug') {
-      const loadedEnvPath = getLoadedEnvPath();
       const has = (key: string) => Boolean(process.env[key] && process.env[key]!.trim().length > 0);
 
       const result = {
-        loadedEnvPath,
+        envSource: 'process.env (mcp.json env / exported env vars)',
         jira: {
           baseUrl: config.jira.baseUrl ? '[set]' : '[missing]',
           projectKey: config.jira.projectKey || '[missing]',
@@ -249,8 +248,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           ASSIGNEE_BIZRING: has('ASSIGNEE_BIZRING'),
         },
         hints: [
-          'If loadedEnvPath is null, set VOC_ENV_PATH to an explicit .env path or inject env vars in ~/.cursor/mcp.json.',
-          'For Jira Server/Data Center, ASSIGNEE_* should be Jira username (assignee.name).',
+          'Inject env vars via ~/.cursor/mcp.json (mcpServers.jira-integration.env).',
+          'ASSIGNEE_* should be Jira username (Server/DC) or accountId (Cloud).',
         ],
       };
 

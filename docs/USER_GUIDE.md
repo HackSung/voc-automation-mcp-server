@@ -442,10 +442,7 @@ Error: Jira API error: 401 - Unauthorized
 **원인**: Jira 인증 실패
 
 **해결**:
-1. `.env` 파일 확인:
-   ```bash
-   cat .env | grep JIRA
-   ```
+1. `~/.cursor/mcp.json`의 `jira-integration` 설정의 `env`에 `JIRA_*` 값이 설정되어 있는지 확인
 2. API 토큰 재발급:
    - https://id.atlassian.com/manage-profile/security/api-tokens
 3. 이메일 주소 확인 (Jira 계정 이메일과 일치해야 함)
@@ -546,7 +543,7 @@ VOC: "I can't login. My email is john@example.com"
 
 **A**: 두 가지 방법이 있습니다.
 
-1. **환경변수 설정** (`.env`, Jira Server/Data Center 기준 username):
+1. **환경변수 설정** (Jira Server/Data Center 기준 username):
    ```bash
    ASSIGNEE_AUTH=jira-username
    ```
@@ -575,7 +572,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 **A**: 네, Internal API Server는 선택 사항입니다. 없어도 다른 기능은 정상 동작합니다.
 
 ```bash
-# .env에서 제거하거나 주석 처리
+# internal-api를 쓰지 않으면 mcp.json env에서 제거하거나 주석 처리
 # INTERNAL_API_BASE_URL=...
 # INTERNAL_API_KEY=...
 ```
@@ -623,7 +620,7 @@ Cursor 메뉴 → Help → Show Logs
 **A**: 다음 항목을 확인하세요:
 
 1. ✅ PII 로그 미기록: `grep -r "010-" logs/` → 결과 없음
-2. ✅ API 키 미노출: `grep -r "sk-" .env*` → .env만 있음
+2. ✅ API 키 미노출: `grep -r "sk-" .` → 코드/문서에 실제 키가 없어야 함
 3. ✅ 세션 TTL: 기본 1시간 (설정 가능)
 4. ✅ HTTPS 통신: 모든 외부 API
 

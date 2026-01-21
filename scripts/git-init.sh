@@ -58,12 +58,6 @@ echo ""
 echo "📝 파일 스테이징..."
 git add .
 
-# .env가 추가되지 않았는지 확인
-if git diff --cached --name-only | grep -q "^\.env$"; then
-    echo -e "${YELLOW}⚠️  .env 파일이 추가되었습니다. 제거합니다...${NC}"
-    git reset .env
-fi
-
 echo -e "${GREEN}✅ 파일 스테이징 완료${NC}"
 echo ""
 

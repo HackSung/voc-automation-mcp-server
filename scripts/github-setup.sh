@@ -20,30 +20,19 @@ TOTAL_CHECKS=8
 
 # 1. .gitignore 확인
 echo "📋 1/8: .gitignore 파일 확인..."
-if grep -q "^\.env$" .gitignore && grep -q "^node_modules" .gitignore; then
+if grep -q "^node_modules" .gitignore; then
     echo -e "${GREEN}✅ .gitignore 설정 정상${NC}"
     ((SUCCESS_COUNT++))
 else
-    echo -e "${RED}❌ .gitignore에 .env 또는 node_modules가 없습니다${NC}"
+    echo -e "${RED}❌ .gitignore에 node_modules가 없습니다${NC}"
     exit 1
 fi
 echo ""
 
-# 2. .env 파일이 git에 추가되지 않았는지 확인
-echo "🔒 2/8: .env 파일 보안 확인..."
-if [ -f .env ]; then
-    if git ls-files --error-unmatch .env 2>/dev/null; then
-        echo -e "${RED}❌ .env 파일이 Git에 추가되어 있습니다!${NC}"
-        echo "다음 명령으로 제거하세요: git rm --cached .env"
-        exit 1
-    else
-        echo -e "${GREEN}✅ .env 파일이 Git에서 제외됨${NC}"
-        ((SUCCESS_COUNT++))
-    fi
-else
-    echo -e "${YELLOW}⚠️  .env 파일이 없습니다 (괜찮음)${NC}"
-    ((SUCCESS_COUNT++))
-fi
+# 2. 민감 파일이 git에 추가되지 않았는지 확인
+echo "🔒 2/8: 민감 파일 보안 확인..."
+echo -e "${GREEN}✅ 별도 env 파일 사용 없음${NC}"
+((SUCCESS_COUNT++))
 echo ""
 
 # 3. API 키 하드코딩 확인

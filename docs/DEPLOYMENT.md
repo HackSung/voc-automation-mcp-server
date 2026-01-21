@@ -27,13 +27,11 @@ npm install --workspaces
 
 ### 2. Configure Environment Variables
 
-```bash
-# Copy example environment file
-cp .env.example .env
+This project intentionally **does not load env files at runtime**.
+Provide required environment variables using one of:
 
-# Edit .env with your credentials
-vim .env  # or use your preferred editor
-```
+- `~/.cursor/mcp.json` → `mcpServers.<server>`의 `env` 필드 (recommended)
+- Exported environment variables in the shell/OS that launches Cursor
 
 **Required Variables:**
 
@@ -209,7 +207,7 @@ NODE_ENV=development node servers/pii-security-server/dist/index.js
 ```
 
 **Common issues:**
-- Missing environment variables → Check `.env` file
+- Missing environment variables → Check your `~/.cursor/mcp.json` `env` injection
 - Port conflicts → Servers use stdio, not ports
 - Permission issues → Ensure files are executable
 
@@ -269,7 +267,7 @@ Logs are written to stderr (to not interfere with MCP stdio protocol).
 
 ## Security Checklist
 
-- [ ] `.env` file is in `.gitignore`
+- [ ] No secrets are committed to Git
 - [ ] API tokens are not hardcoded
 - [ ] PII data is never logged
 - [ ] Session TTL is appropriate (default: 1 hour)

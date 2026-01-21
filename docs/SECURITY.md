@@ -68,7 +68,7 @@ Session Lifecycle:
 **Environment Variables (Recommended):**
 
 ```bash
-# .env file (NEVER commit to git)
+# Provide via ~/.cursor/mcp.json env or exported env vars
 JIRA_API_TOKEN=your_token_here
 OPENAI_API_KEY=sk-...
 ```
@@ -76,8 +76,8 @@ OPENAI_API_KEY=sk-...
 **Verification:**
 
 ```bash
-# Ensure .env is in .gitignore
-grep -q "^\.env$" .gitignore && echo "✓ Protected" || echo "✗ EXPOSED"
+# Ensure no secrets are committed (basic check)
+grep -r "sk-proj\\|sk-ant" . --exclude-dir node_modules --exclude-dir .git && echo "✗ EXPOSED" || echo "✓ Protected"
 ```
 
 ### Rotation Policy
@@ -90,7 +90,7 @@ grep -q "^\.env$" .gitignore && echo "✓ Protected" || echo "✗ EXPOSED"
 **Rotation Steps:**
 
 1. Generate new credential
-2. Update `.env` file
+2. Update `~/.cursor/mcp.json` env (or exported env vars)
 3. Rebuild servers: `npm run build`
 4. Restart Cursor
 5. Verify with health check
@@ -314,7 +314,7 @@ logger.info("Processing", { originalText }); // ✗ BAD
 
 1. Revoke compromised key immediately
 2. Generate new key
-3. Update `.env` file
+3. Update `~/.cursor/mcp.json` env (or exported env vars)
 4. Rebuild and restart
 5. Review access logs for abuse
 6. Document incident
@@ -364,7 +364,7 @@ logger.info("Processing", { originalText }); // ✗ BAD
 
 ### Deployment
 
-- [ ] `.env` file exists and is in `.gitignore`
+- [ ] No secrets are committed to Git
 - [ ] All API keys are valid and have minimal permissions
 - [ ] HTTPS used for all external APIs
 - [ ] PII patterns tested with real examples

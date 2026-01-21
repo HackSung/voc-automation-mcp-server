@@ -58,22 +58,10 @@ npm view @sk-planet/voc-automation-mcp-server versions
 
 ### 1. 환경 설정
 
-#### 1.1 환경변수 파일 생성
+#### 1.1 환경변수 주입 (권장: mcp.json)
 
-프로젝트 루트 또는 홈 디렉토리에 `.env` 파일 생성:
-
-```bash
-# Jira 연동 (필수)
-JIRA_BASE_URL=https://jira.skplanet.com
-JIRA_EMAIL=your-username@sk.com
-JIRA_API_TOKEN=your-jira-api-token
-JIRA_PROJECT_KEY=VRBT
-
-# 자동 담당자 할당 (선택)
-ASSIGNEE_BIZRING=1004359  # V비즈링 담당자 username
-# ASSIGNEE_AUTH=username
-# ASSIGNEE_BILLING=username
-```
+이 프로젝트는 런타임에 env 파일을 로드하지 않습니다.
+필수 환경변수는 `~/.cursor/mcp.json`의 `mcpServers.<server>`의 `env`로 주입하세요.
 
 #### 1.2 Cursor MCP 설정
 
@@ -95,18 +83,24 @@ Cursor 설정 파일에 다음 내용 추가:
   "mcpServers": {
     "voc-pii-security": {
       "command": "npx",
-      "args": ["-y", "@sk-planet/voc-automation-mcp-server", "voc-pii-security"],
+      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-pii-security"],
       "env": {}
     },
     "voc-analysis": {
       "command": "npx",
-      "args": ["-y", "@sk-planet/voc-automation-mcp-server", "voc-analysis"],
+      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-analysis"],
       "env": {}
     },
     "voc-jira-integration": {
       "command": "npx",
-      "args": ["-y", "@sk-planet/voc-automation-mcp-server", "voc-jira-integration"],
-      "env": {}
+      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-jira-integration"],
+      "env": {
+        "JIRA_BASE_URL": "https://jira.skplanet.com",
+        "JIRA_EMAIL": "your-username@sk.com",
+        "JIRA_API_TOKEN": "your-jira-api-token",
+        "JIRA_PROJECT_KEY": "VRBT",
+        "ASSIGNEE_BIZRING": "your-jira-username-or-accountId"
+      }
     }
   }
 }
@@ -187,16 +181,15 @@ export PATH="$PATH:$(npm config get prefix)/bin"
 **증상**: Jira 연동 실패
 
 **해결**:
-1. `.env` 파일이 올바른 위치에 있는지 확인
-2. Cursor 완전 재시작
-3. 환경변수를 `mcp.json`의 `env` 필드에 직접 추가:
+1. Cursor 완전 재시작
+2. 환경변수를 `mcp.json`의 `env` 필드에 직접 추가:
 
 ```json
 {
   "mcpServers": {
     "voc-jira-integration": {
       "command": "npx",
-      "args": ["-y", "@sk-planet/voc-automation-mcp-server", "voc-jira-integration"],
+      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-jira-integration"],
       "env": {
         "JIRA_BASE_URL": "https://jira.skplanet.com",
         "JIRA_EMAIL": "your-username@sk.com",

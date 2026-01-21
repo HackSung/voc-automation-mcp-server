@@ -15,8 +15,12 @@
       "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-jira-integration"],
       "env": {
         "JIRA_BASE_URL": "https://jira.skplanet.com",
-        "JIRA_EMAIL": "your-email@sk.com",
-        "JIRA_API_TOKEN": "YOUR_JIRA_API_TOKEN"
+        "JIRA_EMAIL": "cannan@sk.com",
+        "JIRA_API_TOKEN": "YOUR_JIRA_API_TOKEN",
+        "JIRA_PROJECT_KEY": "VRBT",
+        "ASSIGNEE_DEFAULT": "1004359",
+        "ASSIGNEE_AUTH": "1004359",
+        "ASSIGNEE_BIZRING": "1004359"
       }
     },
     "bitbucket-integration": {
@@ -24,7 +28,8 @@
       "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-bitbucket-integration"],
       "env": {
         "BITBUCKET_BASE_URL": "http://code.skplanet.com",
-        "BITBUCKET_TOKEN": "YOUR_BITBUCKET_TOKEN"
+        "BITBUCKET_TOKEN": "YOUR_BITBUCKET_TOKEN",
+        "BITBUCKET_PROJECT_KEY": "VRBT"
       }
     },
     "internal-api": {

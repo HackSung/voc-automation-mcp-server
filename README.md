@@ -1,9 +1,9 @@
 # VOC 처리 자동화 MCP 서버
 
-[![GitHub release](https://img.shields.io/github/v/release/your-username/voc-automation-mcp-server?style=flat-square)](https://github.com/your-username/voc-automation-mcp-server/releases)
+[![GitHub release](https://img.shields.io/github/v/release/HackSung/voc-automation-mcp-server?style=flat-square)](https://github.com/HackSung/voc-automation-mcp-server/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen?style=flat-square)](https://nodejs.org/)
-[![CI Status](https://img.shields.io/github/actions/workflow/status/your-username/voc-automation-mcp-server/ci.yml?branch=main&style=flat-square)](https://github.com/your-username/voc-automation-mcp-server/actions)
+[![CI Status](https://img.shields.io/github/actions/workflow/status/HackSung/voc-automation-mcp-server/ci.yml?branch=main&style=flat-square)](https://github.com/HackSung/voc-automation-mcp-server/actions)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
 
 고객 VOC(Voice of Customer)를 접수부터 Jira 티켓 생성, 알림 발송까지 자동으로 처리하는 MCP(Model Context Protocol) 기반 엔터프라이즈 시스템입니다.
@@ -264,7 +264,7 @@ npm config set registry http://nexus.skplanet.com/repository/npm-internal/
 #### (개발자) 소스 빌드가 필요한 경우에만
 
 ```bash
-git clone https://github.com/your-company/voc-automation-mcp-server.git
+git clone https://github.com/HackSung/voc-automation-mcp-server.git
 cd voc-automation-mcp-server
 npm install
 npm run build
@@ -272,12 +272,30 @@ npm run build
 
 ### 2단계: 환경변수 설정
 
-```bash
-# .env 파일 생성
-cp .env.example .env
-```
+이 프로젝트는 **런타임에 `.env` 파일을 로드하지 않습니다.**
+필수 환경변수는 아래 중 하나로 주입하세요:
 
-**최소 필수 설정:**
+- `~/.cursor/mcp.json`의 `mcpServers.<server>.env` (권장)
+- Cursor를 실행하는 셸/OS 환경변수(export)
+
+**설정 가능한 환경변수(요약):**
+
+- **공통**
+  - `PII_SESSION_TTL` (ms): PII 세션 TTL (기본 `3600000`)
+- **Jira (`jira-integration`)**
+  - `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN` (필수)
+  - `JIRA_PROJECT_KEY` (기본 `VRBT`)
+  - `ASSIGNEE_DEFAULT`, `ASSIGNEE_AUTH`, `ASSIGNEE_BILLING`, `ASSIGNEE_SUBSCRIPTION`, `ASSIGNEE_PERF`, `ASSIGNEE_UI`, `ASSIGNEE_BIZRING` (선택)
+  - `TEAMS_WEBHOOK_URL` (선택, 알림 사용 시)
+- **Bitbucket (`bitbucket-integration`)**
+  - `BITBUCKET_BASE_URL`, `BITBUCKET_TOKEN` (필수)
+  - `BITBUCKET_USERNAME`, `BITBUCKET_PROJECT_KEY`, `BITBUCKET_REPO_SLUG` (선택)
+- **Internal API (`internal-api`)**
+  - `INTERNAL_API_BASE_URL`, `INTERNAL_API_KEY` (선택)
+- **LLM 관련 (유사 이슈 검색 기능 사용 시)**
+  - `OPENAI_API_KEY` 또는 `ANTHROPIC_API_KEY` (선택)
+
+**최소 필수 설정(예):**
 
 ```bash
 # Jira 연동 (필수)
@@ -347,7 +365,9 @@ npm run setup:cursor
       "env": {
         "JIRA_BASE_URL": "https://jira.skplanet.com",
         "JIRA_EMAIL": "your-email@sk.com",
-        "JIRA_API_TOKEN": "YOUR_JIRA_API_TOKEN"
+        "JIRA_API_TOKEN": "YOUR_JIRA_API_TOKEN",
+        "ASSIGNEE_DEFAULT": "your-jira-username-or-accountId",
+        "ASSIGNEE_BIZRING": "your-jira-username-or-accountId"
       }
     },
     "bitbucket-integration": {
@@ -372,7 +392,7 @@ npm run setup:cursor
 
 > ⚠️ **중요**: `npx` 사용 시 `-p`를 포함해야 합니다. (`-p`가 없으면 `could not determine executable to run` 에러가 날 수 있습니다.)
 >
-> 💡 여러 프로젝트(여러 Cursor 창)를 오갈 때는, 프로젝트 루트 `.env`에 의존하기보다 `mcp.json`의 `env`에 직접 주입(옵션 A)하는 방식이 가장 안정적입니다.
+> 💡 여러 프로젝트(여러 Cursor 창)를 오갈 때는, 각 서버의 환경변수를 `mcp.json`의 `env`에 직접 주입하는 방식이 가장 안정적입니다.
 
 #### 3-2: 개인정보 자동 보호 설정 (중요! 🔒)
 
@@ -678,16 +698,16 @@ npx -y -p @sk-planet/voc-automation-mcp-server@latest voc-jira-integration
 
 이 프로젝트는 오픈소스입니다! 기여를 환영합니다.
 
-- **버그 리포트**: [GitHub Issues](https://github.com/your-username/voc-automation-mcp-server/issues)
-- **기능 제안**: [Feature Request](https://github.com/your-username/voc-automation-mcp-server/issues/new?template=feature_request.md)
+- **버그 리포트**: [GitHub Issues](https://github.com/HackSung/voc-automation-mcp-server/issues)
+- **기능 제안**: [Feature Request](https://github.com/HackSung/voc-automation-mcp-server/issues/new?template=feature_request.md)
 - **Pull Request**: [기여 가이드](CONTRIBUTING.md) 참고
-- **토론**: [GitHub Discussions](https://github.com/your-username/voc-automation-mcp-server/discussions)
+- **토론**: [GitHub Discussions](https://github.com/HackSung/voc-automation-mcp-server/discussions)
 
 ## 📞 지원
 
 - **문의**: it-support@your-company.com
 - **긴급**: Slack #voc-automation 채널
-- **GitHub**: [이슈 등록](https://github.com/your-username/voc-automation-mcp-server/issues)
+- **GitHub**: [이슈 등록](https://github.com/HackSung/voc-automation-mcp-server/issues)
 
 ## 📄 라이선스
 
@@ -695,7 +715,7 @@ MIT License - 사내 사용 목적으로 자유롭게 사용 가능합니다.
 
 ---
 
-**Version**: 1.0.7  
-**Last Updated**: 2026-01-20  
+**Version**: 1.0.8  
+**Last Updated**: 2026-01-21  
 **Maintained by**: VOC Automation Team
 

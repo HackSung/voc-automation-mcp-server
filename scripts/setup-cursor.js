@@ -40,27 +40,36 @@ if (existsSync(CURSOR_MCP_CONFIG)) {
   }
 }
 
+// 기존 서버 env 유지 (npx 설정에서 local dist 설정으로 전환 시 토큰/URL 유지)
+const getExistingEnv = (serverName) =>
+  (existingConfig?.mcpServers?.[serverName]?.env) || {};
+
 // 3. 새 MCP 서버 설정 생성
 const newServers = {
   'pii-security': {
     command: 'node',
     args: [join(PROJECT_ROOT, 'servers/pii-security-server/dist/index.js')],
-    env: {}
+    env: getExistingEnv('pii-security')
   },
   'voc-analysis': {
     command: 'node',
     args: [join(PROJECT_ROOT, 'servers/voc-analysis-server/dist/index.js')],
-    env: {}
+    env: getExistingEnv('voc-analysis')
   },
   'jira-integration': {
     command: 'node',
     args: [join(PROJECT_ROOT, 'servers/jira-integration-server/dist/index.js')],
-    env: {}
+    env: getExistingEnv('jira-integration')
+  },
+  'bitbucket-integration': {
+    command: 'node',
+    args: [join(PROJECT_ROOT, 'servers/bitbucket-integration-server/dist/index.js')],
+    env: getExistingEnv('bitbucket-integration')
   },
   'internal-api': {
     command: 'node',
     args: [join(PROJECT_ROOT, 'servers/internal-api-server/dist/index.js')],
-    env: {}
+    env: getExistingEnv('internal-api')
   }
 };
 
@@ -79,29 +88,14 @@ writeFileSync(CURSOR_MCP_CONFIG, JSON.stringify(finalConfig, null, 2), 'utf-8');
 console.log('   ✓ 저장 완료:', CURSOR_MCP_CONFIG);
 console.log('');
 
-// 6. 환경변수 파일 확인
-const ENV_FILE = join(PROJECT_ROOT, '.env');
-const ENV_EXAMPLE = join(PROJECT_ROOT, '.env.example');
-
-if (!existsSync(ENV_FILE)) {
-  console.log('⚠️  환경변수 파일(.env)이 없습니다!');
-  console.log('');
-  console.log('다음 명령어로 생성하세요:');
-  console.log(`   cp ${ENV_EXAMPLE} ${ENV_FILE}`);
-  console.log('');
-  console.log('그리고 실제 값을 입력하세요:');
-  console.log('   - JIRA_BASE_URL');
-  console.log('   - JIRA_EMAIL');
-  console.log('   - JIRA_API_TOKEN');
-  console.log('   - OPENAI_API_KEY 또는 ANTHROPIC_API_KEY');
-  console.log('');
-} else {
-  console.log('✅ 환경변수 파일 확인 완료');
-  console.log('');
-}
-
-// 7. 빌드 확인
-const servers = ['pii-security-server', 'voc-analysis-server', 'jira-integration-server', 'internal-api-server'];
+// 6. 빌드 확인
+const servers = [
+  'pii-security-server',
+  'voc-analysis-server',
+  'jira-integration-server',
+  'bitbucket-integration-server',
+  'internal-api-server'
+];
 let allBuilt = true;
 
 console.log('🔍 빌드 상태 확인...');
@@ -133,6 +127,9 @@ console.log('2. Cursor 채팅창에서 테스트:');
 console.log('   "사용 가능한 MCP 도구를 보여줘"');
 console.log('');
 console.log('3. 16개 이상의 도구가 표시되면 성공! 🎉');
+console.log('');
+console.log('4. 각 MCP 서버의 환경변수는 ~/.cursor/mcp.json 의 mcpServers.<server>의 env 필드에 입력하세요.');
+console.log('   (이 프로젝트는 별도의 env 파일을 로드하지 않습니다)');
 console.log('');
 console.log('문제가 있으면 docs/USER_GUIDE.md의 트러블슈팅을 참고하세요.');
 console.log('');

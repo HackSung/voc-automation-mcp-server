@@ -18,22 +18,18 @@
 ### ✅ 필수 확인 사항
 
 ```bash
-# 1. .env 파일이 .gitignore에 포함되어 있는지 확인
-cat .gitignore | grep "^\.env$"
-# 결과가 나와야 함 ✅
-
-# 2. 민감 정보가 코드에 하드코딩되어 있지 않은지 확인
+# 1. 민감 정보가 코드에 하드코딩되어 있지 않은지 확인
 grep -r "sk-" --include="*.ts" --include="*.js" servers/
 # 결과가 없어야 함 ✅
 
 grep -r "api.*token.*=" --include="*.ts" servers/ | grep -v "process.env"
 # 환경변수만 사용해야 함 ✅
 
-# 3. node_modules가 .gitignore에 있는지 확인
+# 2. node_modules가 .gitignore에 있는지 확인
 cat .gitignore | grep "node_modules"
 # 결과가 나와야 함 ✅
 
-# 4. dist 폴더가 포함되는지 확인
+# 3. dist 폴더가 포함되는지 확인
 cat .gitignore | grep "dist"
 # dist는 빌드 결과이므로 gitignore에 있어야 함 ✅
 ```
@@ -45,9 +41,9 @@ cat .gitignore | grep "dist"
 find . -type f -name "*.ts" -o -name "*.js" | xargs grep -l "sk-proj" 2>/dev/null
 # 결과가 없어야 함
 
-# .env 파일이 git에 추가되지 않았는지 확인
-git status | grep "\.env$"
-# Untracked files에도 나오지 않아야 함 (.gitignore 때문에)
+# env/secret 파일이 git에 추가되지 않았는지 확인
+git status
+# 민감 파일/키가 보이면 unstage 후 제거 ✅
 ```
 
 ### 📦 빌드 테스트
@@ -155,10 +151,8 @@ git add .
 # 추가된 파일 확인
 git status
 
-# .env가 나오면 안됨! 나온다면:
-git reset .env
-echo ".env" >> .gitignore
-git add .gitignore
+# 민감 파일이 스테이지되면 제거:
+git reset <민감파일>
 ```
 
 ### 2. 첫 커밋
@@ -311,7 +305,7 @@ Closes #(이슈 번호)
 - [ ] 코드가 정상적으로 빌드됨
 - [ ] 테스트를 추가/수정함
 - [ ] 문서를 업데이트함
-- [ ] .env 파일이나 민감 정보가 포함되지 않음
+- [ ] 민감 정보(키/토큰/개인정보)가 포함되지 않음
 - [ ] 린터 에러가 없음
 
 ## 🧪 테스트 방법
@@ -336,7 +330,7 @@ VOC 자동화 MCP 서버 프로젝트에 기여해주셔서 감사합니다!
 2. 클론: `git clone git@github.com:your-username/voc-automation-mcp-server.git`
 3. 의존성 설치: `npm install`
 4. 빌드: `npm run build`
-5. 환경변수 설정: `cp .env.example .env`
+5. 환경변수 설정: `~/.cursor/mcp.json`의 `mcpServers.<server>`의 `env`로 주입
 
 ## 브랜치 전략
 
@@ -534,16 +528,13 @@ git pull origin main --rebase
 git push origin main
 ```
 
-### 문제 2: .env 파일이 추가됨
+### 문제 2: env/secret 파일이 추가됨
 
 ```bash
 # Unstage
-git reset .env
+git reset <민감파일>
 
-# .gitignore에 추가
-echo ".env" >> .gitignore
-git add .gitignore
-git commit -m "chore: .env를 gitignore에 추가"
+# 필요하면 .gitignore에 추가 후 재커밋
 ```
 
 ### 문제 3: 대용량 파일 에러
@@ -570,7 +561,7 @@ git commit -m "chore: Git LFS 설정"
 
 배포 전 최종 확인:
 
-- [ ] .env 파일이 .gitignore에 포함
+- [ ] env/secret 파일이 Git에 포함되지 않음
 - [ ] API 키가 코드에 하드코딩되지 않음
 - [ ] 빌드가 정상적으로 완료됨
 - [ ] README.md가 최신 버전

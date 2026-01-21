@@ -361,7 +361,7 @@ cat servers/pii-security-server/src/pii-detector.ts | grep "patterns ="
 - [ ] `.cursorrules` 파일이 프로젝트에 존재
 - [ ] 팀원 모두에게 설정 안내
 - [ ] 테스트: 이메일, 전화번호, 생년월일 감지 확인
-- [ ] `.env` 파일이 `.gitignore`에 포함
+- [ ] 민감 정보(키/토큰)가 Git에 포함되지 않음
 
 ### 운영 중
 

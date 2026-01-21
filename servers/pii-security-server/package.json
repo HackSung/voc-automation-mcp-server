@@ -7,7 +7,7 @@
     "pii-security-server": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc --emitDeclarationOnly && esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --sourcemap --external:@modelcontextprotocol/sdk --external:dotenv",
+    "build": "tsc --emitDeclarationOnly && esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --sourcemap --external:@modelcontextprotocol/sdk",
     "dev": "tsc --watch",
     "start": "node dist/index.js"
   },

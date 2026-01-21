@@ -13,8 +13,8 @@ mkdir my-voc-automation && cd my-voc-automation
 # 2. Nexus에서 패키지 다운로드
 npm install @your-company/voc-automation-mcp-server
 
-# 3. 설정 파일 복사
-cp node_modules/@your-company/voc-automation-mcp-server/.env.example .env
+# 3. (선택) 설치 경로 확인
+pwd
 ```
 
 ### 방법 2: Git에서 직접 설치
@@ -31,7 +31,8 @@ npm run build
 
 ## ⚙️ 환경변수 설정 (1분)
 
-`.env` 파일을 열어 다음 값만 입력하세요:
+이 프로젝트는 **런타임에 env 파일을 로드하지 않습니다.**
+필수 환경변수는 `~/.cursor/mcp.json`의 `mcpServers.<server>`의 `env`에 입력하세요.
 
 ```bash
 # Jira (필수)
@@ -68,19 +69,32 @@ npm run setup:cursor
      "mcpServers": {
        "pii-security": {
          "command": "node",
-         "args": ["<복사한경로>/servers/pii-security-server/dist/index.js"]
+         "args": ["<복사한경로>/servers/pii-security-server/dist/index.js"],
+         "env": {}
        },
        "voc-analysis": {
          "command": "node",
-         "args": ["<복사한경로>/servers/voc-analysis-server/dist/index.js"]
+         "args": ["<복사한경로>/servers/voc-analysis-server/dist/index.js"],
+         "env": {}
        },
        "jira-integration": {
          "command": "node",
-         "args": ["<복사한경로>/servers/jira-integration-server/dist/index.js"]
+         "args": ["<복사한경로>/servers/jira-integration-server/dist/index.js"],
+         "env": {
+           "JIRA_BASE_URL": "https://jira.skplanet.com",
+           "JIRA_EMAIL": "your-email@company.com",
+           "JIRA_API_TOKEN": "your-token",
+           "ASSIGNEE_DEFAULT": "your-jira-username-or-accountId",
+           "ASSIGNEE_BIZRING": "your-jira-username-or-accountId"
+         }
        },
        "internal-api": {
          "command": "node",
-         "args": ["<복사한경로>/servers/internal-api-server/dist/index.js"]
+         "args": ["<복사한경로>/servers/internal-api-server/dist/index.js"],
+         "env": {
+           "INTERNAL_API_BASE_URL": "your-internal-api-base-url",
+           "INTERNAL_API_KEY": "your-internal-api-key"
+         }
        }
      }
    }
@@ -175,7 +189,7 @@ Cursor 채팅창에 다음을 입력:
 → Cursor를 완전히 재시작하세요
 
 ### Jira 에러
-→ `.env` 파일의 Jira 설정 확인
+→ `~/.cursor/mcp.json`의 `jira-integration` 설정의 `env` 값 확인
 
 ### LLM 에러
 → API 키가 유효한지 확인

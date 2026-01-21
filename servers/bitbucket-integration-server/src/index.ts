@@ -25,7 +25,7 @@ function requireBitbucketClient(): BitbucketClient {
   } catch (e) {
     const baseMsg = (e as Error).message;
     throw new Error(
-      `${baseMsg}\n\nHow to fix:\n- Set these in the current project's .env\n- Or set them in ~/.cursor/mcp.json under bitbucket-integration.env\n`
+      `${baseMsg}\n\nHow to fix:\n- Set these in ~/.cursor/mcp.json under bitbucket-integration.env\n- Or export them in the environment that launches Cursor\n`
     );
   }
 

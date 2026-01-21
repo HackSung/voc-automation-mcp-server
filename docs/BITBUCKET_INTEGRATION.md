@@ -17,7 +17,8 @@ Bitbucket Data Center 9.4와 연동하여 저장소를 조회하고 코드를 �
 
 ### 1. 환경 변수 설정
 
-`.env` 파일에 다음 설정을 추가하세요:
+이 프로젝트는 **런타임에 env 파일을 로드하지 않습니다.**
+아래 값을 `~/.cursor/mcp.json`의 `mcpServers.bitbucket-integration`의 `env`(또는 Cursor 실행 환경변수)로 주입하세요:
 
 ```bash
 # Bitbucket Data Center 연동 (필수)
@@ -63,7 +64,7 @@ BITBUCKET_REPO_SLUG=mobile-app
 
 ## 📖 사용 예시
 
-> **💡 Tip**: `.env` 파일에 `BITBUCKET_PROJECT_KEY`와 `BITBUCKET_REPO_SLUG`를 설정하면, 
+> **💡 Tip**: `BITBUCKET_PROJECT_KEY`와 `BITBUCKET_REPO_SLUG`를 `mcp.json`의 `env`에 설정하면, 
 > 매번 프로젝트 키와 저장소를 지정하지 않아도 기본값을 사용할 수 있습니다.
 
 ### 저장소 목록 조회

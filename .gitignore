@@ -1,6 +1,8 @@
 node_modules/
 dist/
 .env
+.env.*
+.npm-cache/
 *.log
 .DS_Store
 coverage/
@@ -10,3 +12,4 @@ coverage/
 fallback/
 
 sk-planet-voc-automation-mcp-server-*.tgz
+voc-automation-mcp-server-1.0.8.tgz
