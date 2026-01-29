@@ -48,15 +48,46 @@ BITBUCKET_REPO_SLUG=mobile-app
 
 `~/.cursor/mcp.json`에 서버 추가:
 
+**Nexus 사용 (팀원용):**
+
 ```json
 {
   "mcpServers": {
     "bitbucket-integration": {
-      "command": "node",
+      "command": "uvx",
       "args": [
-        "/path/to/voc-automation-mcp-server/servers/bitbucket-integration-server/dist/index.js"
+        "--index-url",
+        "http://nexus.skplanet.com/repository/team-vas-pypi-group/simple/",
+        "--from",
+        "voc-automation-mcp-server",
+        "voc-bitbucket-integration"
       ],
-      "env": {}
+      "env": {
+        "BITBUCKET_BASE_URL": "http://code.skplanet.com",
+        "BITBUCKET_TOKEN": "your-bitbucket-token"
+      }
+    }
+  }
+}
+```
+
+**로컬 개발 (개발자용):**
+
+```json
+{
+  "mcpServers": {
+    "bitbucket-integration": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "/path/to/voc-automation-mcp-server",
+        "voc-bitbucket-integration"
+      ],
+      "env": {
+        "BITBUCKET_BASE_URL": "http://code.skplanet.com",
+        "BITBUCKET_TOKEN": "your-bitbucket-token"
+      }
     }
   }
 }
@@ -64,7 +95,7 @@ BITBUCKET_REPO_SLUG=mobile-app
 
 ## 📖 사용 예시
 
-> **💡 Tip**: `BITBUCKET_PROJECT_KEY`와 `BITBUCKET_REPO_SLUG`를 `mcp.json`의 `env`에 설정하면, 
+> **💡 Tip**: `BITBUCKET_PROJECT_KEY`와 `BITBUCKET_REPO_SLUG`를 `mcp.json`의 `env`에 설정하면,
 > 매번 프로젝트 키와 저장소를 지정하지 않아도 기본값을 사용할 수 있습니다.
 
 ### 저장소 목록 조회
@@ -106,12 +137,15 @@ PROJ/my-repo 저장소의 main 브랜치를 zip으로 다운로드할 수 있는
 ## 🔧 제공되는 도구
 
 ### 1. listRepositories
+
 프로젝트 내 모든 저장소 목록 조회
 
 **입력:**
+
 - `projectKey`: 프로젝트 키 (예: "PROJ")
 
 **출력:**
+
 ```json
 {
   "count": 5,
@@ -127,15 +161,18 @@ PROJ/my-repo 저장소의 main 브랜치를 zip으로 다운로드할 수 있는
 ```
 
 ### 2. getFileContent
+
 파일 내용 읽기
 
 **입력:**
+
 - `projectKey`: 프로젝트 키
 - `repoSlug`: 저장소 슬러그
 - `filePath`: 파일 경로 (예: "src/index.ts")
 - `branch`: 브랜치 (기본값: "main")
 
 **출력:**
+
 ```json
 {
   "filePath": "src/index.ts",
@@ -146,15 +183,18 @@ PROJ/my-repo 저장소의 main 브랜치를 zip으로 다운로드할 수 있는
 ```
 
 ### 3. searchCode
+
 코드 검색
 
 **입력:**
+
 - `projectKey`: 프로젝트 키
 - `repoSlug`: 저장소 슬러그
 - `query`: 검색어
 - `branch`: 브랜치 (기본값: "main")
 
 **출력:**
+
 ```json
 {
   "query": "authenticate",
@@ -174,15 +214,18 @@ PROJ/my-repo 저장소의 main 브랜치를 zip으로 다운로드할 수 있는
 ```
 
 ### 4. browseDirectory
+
 디렉토리 탐색
 
 **입력:**
+
 - `projectKey`: 프로젝트 키
 - `repoSlug`: 저장소 슬러그
 - `path`: 디렉토리 경로 (비워두면 루트)
 - `branch`: 브랜치 (기본값: "main")
 
 **출력:**
+
 ```json
 {
   "path": "src",
@@ -201,13 +244,16 @@ PROJ/my-repo 저장소의 main 브랜치를 zip으로 다운로드할 수 있는
 ```
 
 ### 5. listBranches
+
 브랜치 목록 조회
 
 **입력:**
+
 - `projectKey`: 프로젝트 키
 - `repoSlug`: 저장소 슬러그
 
 **출력:**
+
 ```json
 {
   "count": 3,
@@ -223,15 +269,18 @@ PROJ/my-repo 저장소의 main 브랜치를 zip으로 다운로드할 수 있는
 ```
 
 ### 6. getArchiveUrl
+
 아카이브 다운로드 URL 생성
 
 **입력:**
+
 - `projectKey`: 프로젝트 키
 - `repoSlug`: 저장소 슬러그
 - `format`: "zip" 또는 "tar.gz" (기본값: "zip")
 - `branch`: 브랜치 (기본값: "main")
 
 **출력:**
+
 ```json
 {
   "archiveUrl": "https://bitbucket.com/.../archive?format=zip",
@@ -242,14 +291,17 @@ PROJ/my-repo 저장소의 main 브랜치를 zip으로 다운로드할 수 있는
 ```
 
 ### 7. listPullRequests
+
 Pull Request 목록 조회
 
 **입력:**
+
 - `projectKey`: 프로젝트 키
 - `repoSlug`: 저장소 슬러그
 - `state`: "OPEN", "MERGED", "DECLINED", "ALL" (기본값: "OPEN")
 
 **출력:**
+
 ```json
 {
   "count": 2,
@@ -268,14 +320,17 @@ Pull Request 목록 조회
 ```
 
 ### 8. getPullRequest
+
 특정 Pull Request 상세 정보
 
 **입력:**
+
 - `projectKey`: 프로젝트 키
 - `repoSlug`: 저장소 슬러그
 - `prId`: Pull Request ID
 
 **출력:**
+
 ```json
 {
   "id": 123,
@@ -307,31 +362,37 @@ Pull Request 목록 조회
 ## 🐛 문제 해결
 
 ### 인증 에러
+
 ```
 Error: Bitbucket API error: 401 Unauthorized
 ```
 
 **해결:**
+
 1. Personal Access Token이 유효한지 확인
 2. 토큰에 "Repository read" 권한이 있는지 확인
 3. Bitbucket URL이 올바른지 확인
 
 ### 저장소를 찾을 수 없음
+
 ```
 Error: Bitbucket API error: 404 Not Found
 ```
 
 **해결:**
+
 1. 프로젝트 키가 정확한지 확인 (대소문자 구분)
 2. 저장소 슬러그가 정확한지 확인
 3. 해당 저장소에 대한 접근 권한이 있는지 확인
 
 ### 네트워크 에러
+
 ```
 Error: fetch failed
 ```
 
 **해결:**
+
 1. Bitbucket 서버가 접근 가능한지 확인
 2. 프록시 설정 확인
 3. 방화벽 규칙 확인
@@ -344,24 +405,28 @@ Error: fetch failed
 ## 💡 사용 시나리오
 
 ### 1. 코드베이스 분석
+
 ```
-PROJ/my-app 저장소의 구조를 분석하고, 
+PROJ/my-app 저장소의 구조를 분석하고,
 src 디렉토리의 모든 TypeScript 파일 목록을 보여줘
 ```
 
 ### 2. 특정 함수 찾기
+
 ```
 PROJ/backend 저장소에서 "processPayment" 함수를 찾아서
 해당 파일의 내용을 보여줘
 ```
 
 ### 3. 의존성 확인
+
 ```
 PROJ/frontend 저장소의 package.json 파일을 읽어서
 사용 중인 React 버전을 알려줘
 ```
 
 ### 4. 브랜치 비교
+
 ```
 PROJ/api 저장소의 develop 브랜치와 main 브랜치의
 최근 커밋을 비교해줘
@@ -369,6 +434,6 @@ PROJ/api 저장소의 develop 브랜치와 main 브랜치의
 
 ---
 
-**Version**: 1.0.0  
-**Last Updated**: 2026-01-14
+**Version**: 2.0.0 (Python/FastMCP)  
+**Last Updated**: 2026-01-29  
 **Maintained by**: VOC Automation Team

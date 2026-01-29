@@ -1,6 +1,7 @@
-# Nexus 배포 및 사용 가이드
+# Nexus 배포 및 사용 가이드 (Python 버전)
 
 ## 목차
+
 1. [관리자: Nexus 배포](#관리자-nexus-배포)
 2. [사용자: MCP 서버 사용](#사용자-mcp-서버-사용)
 
@@ -8,19 +9,44 @@
 
 ## 관리자: Nexus 배포
 
-### 1. Nexus 레지스트리 인증 설정
+### 사전 요구사항
+
+- Python 3.13+
+- uv (권장) 또는 pip + twine
+- Nexus PyPI 레포지토리 접근 권한
+
+### 1. Nexus PyPI 인증 설정
+
+#### 방법 1: uv 사용 (권장)
 
 ```bash
-# ~/.npmrc 파일에 추가
-registry=https://nexus.skplanet.com/repository/npm-private/
-//nexus.skplanet.com/repository/npm-private/:_auth=BASE64_ENCODED_CREDENTIALS
-//nexus.skplanet.com/repository/npm-private/:always-auth=true
+# ~/.config/uv/uv.toml 또는 프로젝트 루트의 uv.toml
+[publish]
+url = "http://nexus.skplanet.com/repository/team-vas-pypi-releases/"
+username = "your-nexus-username"
+password = "your-nexus-password"
 ```
 
-또는 npm login 사용:
+또는 환경변수로 설정:
+
 ```bash
-npm config set registry https://nexus.skplanet.com/repository/npm-private/
-npm login --registry=https://nexus.skplanet.com/repository/npm-private/
+export UV_PUBLISH_URL="http://nexus.skplanet.com/repository/team-vas-pypi-releases/"
+export UV_PUBLISH_USERNAME="your-nexus-username"
+export UV_PUBLISH_PASSWORD="your-nexus-password"
+```
+
+#### 방법 2: pip + twine 사용
+
+```bash
+# ~/.pypirc 파일 생성
+[distutils]
+index-servers =
+    nexus
+
+[nexus]
+repository = http://nexus.skplanet.com/repository/team-vas-pypi-releases/
+username = your-nexus-username
+password = your-nexus-password
 ```
 
 ### 2. 패키지 빌드 및 배포
@@ -29,90 +55,132 @@ npm login --registry=https://nexus.skplanet.com/repository/npm-private/
 # 프로젝트 디렉토리로 이동
 cd /path/to/voc-automation-mcp-server
 
-# 의존성 설치
-npm install
+# 의존성 설치 (처음 한 번)
+uv sync
 
-# 빌드
-npm run build
+# 버전 업데이트 (pyproject.toml에서)
+# version = "2.0.1"
 
-# 버전 업데이트 (선택)
-npm version patch  # 또는 minor, major
+# 패키지 빌드
+uv build
 
 # Nexus에 배포
-npm publish
+uv publish
+
+# 또는 twine 사용
+# pip install twine
+# twine upload -r nexus dist/*
 ```
 
 ### 3. 배포 확인
 
 ```bash
 # Nexus에서 패키지 확인
-npm view @sk-planet/voc-automation-mcp-server
+pip index versions voc-automation-mcp-server --index-url http://nexus.skplanet.com/repository/team-vas-pypi-group/simple/
 
-# 특정 버전 확인
-npm view @sk-planet/voc-automation-mcp-server versions
+# 또는 웹 UI에서 확인
+# http://nexus.skplanet.com/#browse/browse:team-vas-pypi-releases
 ```
 
 ---
 
 ## 사용자: MCP 서버 사용
 
-### 1. 환경 설정
+### 1. 사전 요구사항
 
-#### 1.1 환경변수 주입 (권장: mcp.json)
+- Python 3.13+
+- uv 설치
 
-이 프로젝트는 런타임에 env 파일을 로드하지 않습니다.
-필수 환경변수는 `~/.cursor/mcp.json`의 `mcpServers.<server>`의 `env`로 주입하세요.
-
-#### 1.2 Cursor MCP 설정
-
-**방법 1: 자동 설정 (권장)**
-
-터미널에서 다음 명령어 실행:
 ```bash
-npx -y @sk-planet/voc-automation-mcp-server setup
+# uv 설치 (없는 경우)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-**방법 2: 수동 설정**
+### 2. Cursor MCP 설정
 
-Cursor 설정 파일에 다음 내용 추가:
-- macOS/Linux: `~/.cursor/mcp.json` 또는 `~/.config/cursor/mcp.json`
-- Windows: `%APPDATA%\Cursor\mcp.json`
+`~/.cursor/mcp.json` 파일 생성/수정:
 
 ```json
 {
   "mcpServers": {
-    "voc-pii-security": {
-      "command": "npx",
-      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-pii-security"],
+    "pii-security": {
+      "command": "uvx",
+      "args": [
+        "--index-url",
+        "http://nexus.skplanet.com/repository/team-vas-pypi-group/simple/",
+        "--from",
+        "voc-automation-mcp-server",
+        "voc-pii-security"
+      ],
       "env": {}
     },
     "voc-analysis": {
-      "command": "npx",
-      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-analysis"],
+      "command": "uvx",
+      "args": [
+        "--index-url",
+        "http://nexus.skplanet.com/repository/team-vas-pypi-group/simple/",
+        "--from",
+        "voc-automation-mcp-server",
+        "voc-analysis"
+      ],
       "env": {}
     },
-    "voc-jira-integration": {
-      "command": "npx",
-      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-jira-integration"],
+    "jira-integration": {
+      "command": "uvx",
+      "args": [
+        "--index-url",
+        "http://nexus.skplanet.com/repository/team-vas-pypi-group/simple/",
+        "--from",
+        "voc-automation-mcp-server",
+        "voc-jira-integration"
+      ],
       "env": {
         "JIRA_BASE_URL": "https://jira.skplanet.com",
         "JIRA_EMAIL": "your-username@sk.com",
         "JIRA_API_TOKEN": "your-jira-api-token",
         "JIRA_PROJECT_KEY": "VRBT",
-        "ASSIGNEE_BIZRING": "your-jira-username-or-accountId"
+        "ASSIGNEE_DEFAULT": "your-jira-username",
+        "ASSIGNEE_BIZRING": "your-jira-username"
+      }
+    },
+    "bitbucket-integration": {
+      "command": "uvx",
+      "args": [
+        "--index-url",
+        "http://nexus.skplanet.com/repository/team-vas-pypi-group/simple/",
+        "--from",
+        "voc-automation-mcp-server",
+        "voc-bitbucket-integration"
+      ],
+      "env": {
+        "BITBUCKET_BASE_URL": "http://code.skplanet.com",
+        "BITBUCKET_TOKEN": "your-bitbucket-token",
+        "BITBUCKET_PROJECT_KEY": "VRBT"
+      }
+    },
+    "internal-api": {
+      "command": "uvx",
+      "args": [
+        "--index-url",
+        "http://nexus.skplanet.com/repository/team-vas-pypi-group/simple/",
+        "--from",
+        "voc-automation-mcp-server",
+        "voc-internal-api"
+      ],
+      "env": {
+        "INTERNAL_API_BASE_URL": "your-api-url",
+        "INTERNAL_API_KEY": "your-api-key"
       }
     }
   }
 }
 ```
 
-### 2. Cursor 재시작
+### 3. Cursor 재시작
 
 설정 후 Cursor를 완전히 종료하고 재시작합니다.
 
-### 3. 사용 방법
-
-#### VOC 처리 예시
+### 4. 사용 방법
 
 Cursor에서 다음과 같이 요청:
 
@@ -125,6 +193,7 @@ VOC 처리해줘:
 ```
 
 AI가 자동으로:
+
 1. 개인정보 감지 및 익명화
 2. VOC 내용 분석 (의도, 우선순위, 카테고리, 감정)
 3. Jira 이슈 자동 생성 (담당자 자동 할당)
@@ -136,20 +205,26 @@ AI가 자동으로:
 ### 최신 버전으로 업데이트
 
 ```bash
-# 캐시 클리어 후 최신 버전 사용
-npx clear-npx-cache
-```
+# uvx 캐시 클리어
+uv cache clean
 
-또는 Cursor 재시작 시 자동으로 최신 버전 확인.
+# Cursor 재시작하면 자동으로 최신 버전 다운로드
+```
 
 ### 특정 버전 사용
 
 ```json
 {
   "mcpServers": {
-    "voc-jira-integration": {
-      "command": "npx",
-      "args": ["-y", "@sk-planet/voc-automation-mcp-server@1.2.3", "voc-jira-integration"]
+    "jira-integration": {
+      "command": "uvx",
+      "args": [
+        "--index-url",
+        "http://nexus.skplanet.com/repository/team-vas-pypi-group/simple/",
+        "--from",
+        "voc-automation-mcp-server==2.0.1",
+        "voc-jira-integration"
+      ]
     }
   }
 }
@@ -157,61 +232,60 @@ npx clear-npx-cache
 
 ---
 
+## npx vs uvx 비교
+
+| 항목        | npm (TypeScript)      | uv (Python)            |
+| ----------- | --------------------- | ---------------------- |
+| 실행 명령어 | `npx`                 | `uvx`                  |
+| 레포지토리  | npm-private           | pypi-private           |
+| 설정 파일   | `~/.npmrc`            | `~/.config/uv/uv.toml` |
+| 캐시 정리   | `npx clear-npx-cache` | `uv cache clean`       |
+
+---
+
 ## 트러블슈팅
 
-### npx 실행 오류
+### uvx 실행 오류
 
-**증상**: `command not found` 또는 권한 오류
+**증상**: `command not found`
 
 **해결**:
+
 ```bash
-# Node.js 설치 확인
-node --version
-npm --version
+# uv 설치 확인
+uv --version
 
-# npm 글로벌 bin 경로 확인
-npm config get prefix
-
-# PATH에 추가 (macOS/Linux)
-export PATH="$PATH:$(npm config get prefix)/bin"
-```
-
-### 환경변수 인식 안됨
-
-**증상**: Jira 연동 실패
-
-**해결**:
-1. Cursor 완전 재시작
-2. 환경변수를 `mcp.json`의 `env` 필드에 직접 추가:
-
-```json
-{
-  "mcpServers": {
-    "voc-jira-integration": {
-      "command": "npx",
-      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-jira-integration"],
-      "env": {
-        "JIRA_BASE_URL": "https://jira.skplanet.com",
-        "JIRA_EMAIL": "your-username@sk.com",
-        "JIRA_API_TOKEN": "your-token",
-        "ASSIGNEE_BIZRING": "your-jira-username"
-      }
-    }
-  }
-}
+# PATH 확인 (uv 설치 시 안내된 경로)
+echo $PATH
+export PATH="$HOME/.local/bin:$PATH"
 ```
 
 ### Nexus 인증 오류
 
-**증상**: `npm ERR! 401 Unauthorized`
+**증상**: `401 Unauthorized` 또는 `403 Forbidden`
 
 **해결**:
-```bash
-# Nexus 레지스트리 재설정
-npm config set registry https://nexus.skplanet.com/repository/npm-private/
-npm login
 
-# 또는 관리자에게 Nexus 접근 권한 요청
+```bash
+# Nexus PyPI 레포지토리 URL 확인
+# IT 팀에 team-vas-pypi-group 레포지토리 접근 권한 요청
+
+# 또는 인증 정보 확인
+curl -u "username:password" http://nexus.skplanet.com/repository/team-vas-pypi-group/simple/
+```
+
+### Python 버전 오류
+
+**증상**: `requires Python >=3.13`
+
+**해결**:
+
+```bash
+# Python 3.13 설치
+uv python install 3.13
+
+# 기본 Python 버전 확인
+uv python list
 ```
 
 ---
@@ -219,6 +293,7 @@ npm login
 ## 지원
 
 문의사항이나 이슈 발생 시:
-- 이메일: voc-team@sk.com
+
+- 이메일: cannan@sk.com
 - Jira: VRBT 프로젝트에 이슈 등록
 - 내부 Slack: #voc-automation 채널

@@ -19,11 +19,11 @@ VOC 자동화 시스템에서 개인정보를 안전하게 보호하는 방법�
 
 ```
 사용자 입력:
-"제 이메일 hong.gildong@company.com으로 연락주세요. 
+"제 이메일 hong.gildong@company.com으로 연락주세요.
 전화번호는 010-1234-5678이고 생년월일은 19721206입니다."
 
                     ↓ (개인정보 그대로!)
-                    
+
 Cursor의 LLM:
 - ❌ 이메일, 전화번호, 생년월일이 그대로 전송됨
 - ❌ LLM 학습 데이터에 포함될 수 있음
@@ -35,13 +35,13 @@ Cursor의 LLM:
 
 ```
 사용자 입력:
-"제 이메일 hong.gildong@company.com으로 연락주세요. 
+"제 이메일 hong.gildong@company.com으로 연락주세요.
 전화번호는 010-1234-5678이고 생년월일은 19721206입니다."
 
                     ↓ (자동 감지 & 비식별화!)
-                    
+
 Cursor의 LLM이 보는 것:
-"제 이메일 [EMAIL_001]으로 연락주세요. 
+"제 이메일 [EMAIL_001]으로 연락주세요.
 전화번호는 [PHONE_001]이고 생년월일은 [BIRTHDATE_001]입니다."
 
 ✅ 개인정보 완전 보호!
@@ -91,14 +91,14 @@ Cursor의 LLM이 보는 것:
 
 ### 보안 체크포인트
 
-| 단계 | 개인정보 상태 | 보안 조치 |
-|------|--------------|----------|
-| 1. 사용자 입력 | ❌ 원본 | - |
-| 2. PII 감지 | ⚠️ 처리 중 | 메모리에만 매핑 저장 |
-| 3. LLM 분석 | ✅ 익명화 | [EMAIL_001] 등 플레이스홀더 |
-| 4. VOC 처리 | ✅ 익명화 | 모든 작업에 익명화 텍스트 사용 |
-| 5. Jira 저장 | ⚠️ 원본 복원 | 안전한 저장소에만 |
-| 6. 세션 정리 | ✅ 삭제 | 메모리에서 완전 제거 |
+| 단계           | 개인정보 상태 | 보안 조치                      |
+| -------------- | ------------- | ------------------------------ |
+| 1. 사용자 입력 | ❌ 원본       | -                              |
+| 2. PII 감지    | ⚠️ 처리 중    | 메모리에만 매핑 저장           |
+| 3. LLM 분석    | ✅ 익명화     | [EMAIL_001] 등 플레이스홀더    |
+| 4. VOC 처리    | ✅ 익명화     | 모든 작업에 익명화 텍스트 사용 |
+| 5. Jira 저장   | ⚠️ 원본 복원  | 안전한 저장소에만              |
+| 6. 세션 정리   | ✅ 삭제       | 메모리에서 완전 제거           |
 
 ## 자동 보호 설정하기
 
@@ -175,31 +175,31 @@ Cursor 채팅창에서:
 
 ### 자동 감지 패턴
 
-| 유형 | 패턴 예시 | 플레이스홀더 |
-|------|----------|-------------|
-| **이메일** | `test@example.com` | `[EMAIL_001]` |
-| **전화번호** | `010-1234-5678`<br/>`6344 9445`<br/>`6344-9445` | `[PHONE_001]` |
-| **생년월일** | `19721206` (YYYYMMDD) | `[BIRTHDATE_001]` |
-| **주민번호** | `123456-1234567`<br/>`1234561234567` | `[SSN_001]` |
-| **신용카드** | `1234-5678-9012-3456`<br/>`1234567890123456` | `[CARD_001]` |
+| 유형         | 패턴 예시                                       | 플레이스홀더      |
+| ------------ | ----------------------------------------------- | ----------------- |
+| **이메일**   | `test@example.com`                              | `[EMAIL_001]`     |
+| **전화번호** | `010-1234-5678`<br/>`6344 9445`<br/>`6344-9445` | `[PHONE_001]`     |
+| **생년월일** | `19721206` (YYYYMMDD)                           | `[BIRTHDATE_001]` |
+| **주민번호** | `123456-1234567`<br/>`1234561234567`            | `[SSN_001]`       |
+| **신용카드** | `1234-5678-9012-3456`<br/>`1234567890123456`    | `[CARD_001]`      |
 
 ### 정규식 패턴
 
-```typescript
-// 이메일
-/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g
+```python
+# 이메일
+r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
 
-// 전화번호 (한국)
-/(?:(?:\+82[-\s]?|0)?(?:10|11|16|17|18|19)[-\s]?\d{3,4}[-\s]?\d{4}|\d{4}[\s-]\d{4})/g
+# 전화번호 (한국)
+r"(?:(?:\+82[-\s]?|0)?(?:10|11|16|17|18|19)[-\s]?\d{3,4}[-\s]?\d{4}|\d{4}[\s-]\d{4})"
 
-// 생년월일 (YYYYMMDD)
-/\b(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\b/g
+# 생년월일 (YYYYMMDD)
+r"\b(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\b"
 
-// 주민번호
-/\b\d{6}[-\s]?[1-4]\d{6}\b/g
+# 주민번호
+r"\b\d{6}[-\s]?[1-4]\d{6}\b"
 
-// 신용카드
-/\b(?:\d{4}[-\s]?){3}\d{4}\b/g
+# 신용카드
+r"\b(?:\d{4}[-\s]?){3}\d{4}\b"
 ```
 
 ## 워크플로우 예제
@@ -210,7 +210,7 @@ Cursor 채팅창에서:
 // Cursor 채팅창 입력:
 "다음 VOC를 안전하게 처리해줘:
 
-'로그인 문제가 있어요. 
+'로그인 문제가 있어요.
 이메일: hong.gildong@company.com
 전화: 010-1234-5678
 생년월일: 19721206
@@ -231,46 +231,46 @@ Cursor 채팅창에서:
 ```typescript
 // Step 1: 자동 PII 감지 (.cursorrules 덕분!)
 detectAndAnonymizePII({
-  text: "이메일: hong.gildong@company.com...",
-  sessionId: "voc-20260108-bizring-001"
-})
+  text: '이메일: hong.gildong@company.com...',
+  sessionId: 'voc-20260108-bizring-001',
+});
 // → anonymizedText: "이메일: [EMAIL_001], 전화: [PHONE_001], 생년월일: [BIRTHDATE_001]..."
 
 // Step 2: 익명화된 텍스트로 분석 프롬프트 생성
 generateVOCAnalysisPrompt({
-  vocText: anonymizedText  // ✅ 개인정보 없음!
-})
+  vocText: anonymizedText, // ✅ 개인정보 없음!
+});
 
 // Step 3: LLM 분석 (개인정보 노출 없음)
 // Cursor의 LLM이 프롬프트 실행
 
 // Step 4: 분석 결과 파싱
-parseVOCAnalysis({ llmResponse: "..." })
+parseVOCAnalysis({ llmResponse: '...' });
 
 // Step 5: 에러 컨텍스트
-getErrorContext({ errorCode: "AUTH_001" })
+getErrorContext({ errorCode: 'AUTH_001' });
 
 // Step 6: Jira 티켓 생성
 createJiraIssue({
-  summary: "로그인 문제 (AUTH_001)",
-  description: "... [EMAIL_001] ...",  // 익명화된 텍스트 사용
-  priority: "High"
-})
+  summary: '로그인 문제 (AUTH_001)',
+  description: '... [EMAIL_001] ...', // 익명화된 텍스트 사용
+  priority: 'High',
+});
 
 // Step 7: Jira에만 원본 복원
 restoreOriginalText({
-  anonymizedText: "...",
-  sessionId: "voc-20260108-bizring-001"
-})
+  anonymizedText: '...',
+  sessionId: 'voc-20260108-bizring-001',
+});
 // → originalText: "이메일: hong.gildong@company.com..."
 
 addComment({
-  issueKey: "VOC-123",
-  comment: originalText  // Jira는 안전한 저장소
-})
+  issueKey: 'VOC-123',
+  comment: originalText, // Jira는 안전한 저장소
+});
 
 // Step 8: 정리
-clearSession({ sessionId: "voc-20260108-bizring-001" })
+clearSession({ sessionId: 'voc-20260108-bizring-001' });
 // → 메모리에서 모든 매핑 삭제
 ```
 
@@ -281,12 +281,14 @@ clearSession({ sessionId: "voc-20260108-bizring-001" })
 **확인사항:**
 
 1. `.cursorrules` 파일이 존재하는가?
+
    ```bash
    ls -la ~/.cursorrules  # 또는
    ls -la .cursorrules
    ```
 
 2. Cursor를 재시작했는가?
+
    - macOS: `Cmd + Q` 후 재시작
    - Windows/Linux: 완전 종료 후 재시작
 
@@ -296,16 +298,19 @@ clearSession({ sessionId: "voc-20260108-bizring-001" })
    ```
 
 **해결:**
+
 - 파일 없으면 다시 복사
 - 내용 확인 후 Cursor 재시작
 
 ### Q2: "세션을 찾을 수 없습니다" 에러
 
 **원인:**
+
 - 세션 ID가 일치하지 않음
 - 세션이 만료됨 (1시간 TTL)
 
 **해결:**
+
 ```javascript
 // 같은 sessionId를 사용해야 함
 detectAndAnonymizePII({ sessionId: "voc-001", ... })
@@ -319,11 +324,13 @@ restoreOriginalText({ sessionId: "voc-002", ... })  // ❌ 다름
 ### Q3: LLM이 원본 텍스트를 보고 있는 것 같아요
 
 **확인:**
+
 1. `.cursorrules` 설정이 적용되었는지 확인
 2. Cursor 로그 확인 (Help → Show Logs)
 3. `detectAndAnonymizePII`가 호출되었는지 확인
 
 **디버그 프롬프트:**
+
 ```
 다음 텍스트를 처리할 때 어떤 도구를 사용했는지 보여줘:
 
@@ -333,6 +340,7 @@ restoreOriginalText({ sessionId: "voc-002", ... })  // ❌ 다름
 ```
 
 **기대 결과:**
+
 ```
 사용한 도구:
 1. detectAndAnonymizePII
@@ -350,9 +358,10 @@ cat servers/pii-security-server/src/pii-detector.ts | grep "patterns ="
 ```
 
 **패턴 추가가 필요하면:**
-1. `servers/pii-security-server/src/pii-detector.ts` 수정
-2. 빌드: `npm run build`
-3. Cursor 재시작
+
+1. `src/pii_security/detector.py` 수정
+2. Cursor 재시작 (로컬 개발 시)
+3. 또는 새 버전 배포 후 캐시 클리어: `uv cache clean`
 
 ## 보안 체크리스트
 
@@ -395,5 +404,5 @@ cat servers/pii-security-server/src/pii-detector.ts | grep "patterns ="
 
 ---
 
-**마지막 업데이트**: 2026-01-08  
-**문서 버전**: 2.0
+**마지막 업데이트**: 2026-01-29  
+**문서 버전**: 2.0 (Python/FastMCP)

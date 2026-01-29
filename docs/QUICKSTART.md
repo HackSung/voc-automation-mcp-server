@@ -4,29 +4,41 @@
 
 ## 📦 설치 (3분)
 
-### 방법 1: 사내 Nexus에서 설치 (권장)
+### 사전 요구사항
+
+- **Python 3.13+**
+- **uv** (권장) 또는 pip
 
 ```bash
-# 1. 프로젝트 폴더 생성
-mkdir my-voc-automation && cd my-voc-automation
-
-# 2. Nexus에서 패키지 다운로드
-npm install @your-company/voc-automation-mcp-server
-
-# 3. (선택) 설치 경로 확인
-pwd
+# uv 설치 (없는 경우)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-### 방법 2: Git에서 직접 설치
+### 방법 1: Git에서 설치 (권장)
 
 ```bash
 # 1. 저장소 클론
-git clone https://github.com/your-company/voc-automation-mcp-server.git
+git clone https://github.com/HackSung/voc-automation-mcp-server.git
 cd voc-automation-mcp-server
 
-# 2. 의존성 설치 및 빌드
-npm install
-npm run build
+# 2. Python 3.13 설치 및 의존성 설치
+uv python install 3.13
+uv sync
+```
+
+### 방법 2: pip로 설치
+
+```bash
+# 1. 저장소 클론
+git clone https://github.com/HackSung/voc-automation-mcp-server.git
+cd voc-automation-mcp-server
+
+# 2. 가상환경 생성 및 활성화
+python3.13 -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+
+# 3. 패키지 설치
+pip install -e .
 ```
 
 ## ⚙️ 환경변수 설정 (1분)
@@ -40,7 +52,7 @@ JIRA_BASE_URL=https://your-company.atlassian.net
 JIRA_EMAIL=your-email@company.com
 JIRA_API_TOKEN=your-token
 
-# LLM (필수 - 둘 중 하나)
+# OpenAI (선택 - 유사 이슈 검색용)
 OPENAI_API_KEY=sk-...
 ```
 
@@ -50,59 +62,59 @@ OPENAI_API_KEY=sk-...
 
 ### 1단계: MCP 서버 등록
 
-#### 자동 설정 (향후 지원)
+`~/.cursor/mcp.json` 파일 생성/수정:
 
-```bash
-npm run setup:cursor
+```json
+{
+  "mcpServers": {
+    "pii-security": {
+      "command": "uv",
+      "args": ["run", "--directory", "<설치경로>", "voc-pii-security"],
+      "env": {}
+    },
+    "voc-analysis": {
+      "command": "uv",
+      "args": ["run", "--directory", "<설치경로>", "voc-analysis"],
+      "env": {}
+    },
+    "jira-integration": {
+      "command": "uv",
+      "args": ["run", "--directory", "<설치경로>", "voc-jira-integration"],
+      "env": {
+        "JIRA_BASE_URL": "https://jira.your-company.com",
+        "JIRA_EMAIL": "your-email@company.com",
+        "JIRA_API_TOKEN": "your-token",
+        "JIRA_PROJECT_KEY": "VRBT",
+        "ASSIGNEE_DEFAULT": "your-jira-username"
+      }
+    },
+    "bitbucket-integration": {
+      "command": "uv",
+      "args": ["run", "--directory", "<설치경로>", "voc-bitbucket-integration"],
+      "env": {
+        "BITBUCKET_BASE_URL": "http://code.your-company.com",
+        "BITBUCKET_TOKEN": "your-bitbucket-token"
+      }
+    },
+    "internal-api": {
+      "command": "uv",
+      "args": ["run", "--directory", "<설치경로>", "voc-internal-api"],
+      "env": {
+        "INTERNAL_API_BASE_URL": "your-internal-api-base-url",
+        "INTERNAL_API_KEY": "your-internal-api-key"
+      }
+    }
+  }
+}
 ```
 
-### 수동 설정
+> 💡 `<설치경로>`를 실제 클론한 경로로 변경하세요 (예: `/Users/username/github/voc-automation-mcp-server`)
 
-1. 패키지 설치 경로 확인:
-   ```bash
-   pwd  # 현재 경로 복사
-   ```
+### 2단계: Cursor 재시작
 
-2. `~/.cursor/mcp.json` 파일 생성/수정:
-   ```json
-   {
-     "mcpServers": {
-       "pii-security": {
-         "command": "node",
-         "args": ["<복사한경로>/servers/pii-security-server/dist/index.js"],
-         "env": {}
-       },
-       "voc-analysis": {
-         "command": "node",
-         "args": ["<복사한경로>/servers/voc-analysis-server/dist/index.js"],
-         "env": {}
-       },
-       "jira-integration": {
-         "command": "node",
-         "args": ["<복사한경로>/servers/jira-integration-server/dist/index.js"],
-         "env": {
-           "JIRA_BASE_URL": "https://jira.skplanet.com",
-           "JIRA_EMAIL": "your-email@company.com",
-           "JIRA_API_TOKEN": "your-token",
-           "ASSIGNEE_DEFAULT": "your-jira-username-or-accountId",
-           "ASSIGNEE_BIZRING": "your-jira-username-or-accountId"
-         }
-       },
-       "internal-api": {
-         "command": "node",
-         "args": ["<복사한경로>/servers/internal-api-server/dist/index.js"],
-         "env": {
-           "INTERNAL_API_BASE_URL": "your-internal-api-base-url",
-           "INTERNAL_API_KEY": "your-internal-api-key"
-         }
-       }
-     }
-   }
-   ```
+설정 후 Cursor를 완전히 재시작하세요.
 
-3. Cursor 재시작
-
-### 2단계: 개인정보 자동 보호 설정 🔒 (중요!)
+### 3단계: 개인정보 자동 보호 설정 🔒 (중요!)
 
 **이 단계를 건너뛰면 개인정보가 LLM에 노출됩니다!**
 
@@ -121,18 +133,6 @@ cp .cursorrules ~/.cursorrules
 - ✅ LLM 처리 전에 자동 비식별화
 - ✅ [EMAIL_001], [PHONE_001] 같은 플레이스홀더로 대체
 - ✅ 안전한 저장소(Jira)에만 원본 복원
-
-**확인 방법:**
-
-```bash
-# 파일이 존재하는지 확인
-ls -la ~/my-project/.cursorrules
-
-# 또는 전역 파일 확인
-ls -la ~/.cursorrules
-```
-
-> 💡 `.cursorrules` 파일이 없으면 사용자가 매번 수동으로 "개인정보를 비식별화해줘"라고 요청해야 합니다.
 
 ## ✅ 설치 확인 (30초)
 
@@ -188,11 +188,14 @@ Cursor 채팅창에 다음을 입력:
 ### "Unknown tool" 에러
 → Cursor를 완전히 재시작하세요
 
+### "uv: command not found" 에러
+→ uv 설치: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+
 ### Jira 에러
 → `~/.cursor/mcp.json`의 `jira-integration` 설정의 `env` 값 확인
 
-### LLM 에러
-→ API 키가 유효한지 확인
+### Python 버전 에러
+→ `uv python install 3.13`으로 Python 3.13 설치
 
 ## 📚 다음 단계
 
@@ -213,4 +216,3 @@ Cursor 채팅창에 다음을 입력:
 **소요 시간**: 약 5분  
 **어려움**: ⭐ (매우 쉬움)  
 **도움**: 언제든지 문의하세요!
-

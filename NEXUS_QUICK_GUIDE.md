@@ -1,6 +1,7 @@
-# Nexus 배포 및 사용 빠른 가이드
+# Nexus 배포 및 사용 빠른 가이드 (Python 버전)
 
 ## 🎯 목표
+
 사용자가 `mcp.json`에 몇 줄만 추가하면 VOC MCP 서버를 사용할 수 있도록 Nexus에 배포
 
 ---
@@ -8,17 +9,25 @@
 ## 관리자: 배포 방법
 
 ### 1회만: Nexus 인증 설정
+
 ```bash
-npm config set registry https://nexus.skplanet.com/repository/npm-private/
-npm login
+# 환경변수 설정
+export UV_PUBLISH_URL="http://nexus.skplanet.com/repository/team-vas-pypi-releases/"
+export UV_PUBLISH_USERNAME="your-username"
+export UV_PUBLISH_PASSWORD="your-password"
 ```
 
 ### 배포 (버전 업데이트마다)
+
 ```bash
-cd /Users/1004359/voc-automation-mcp-server
-npm run build
-npm version patch  # 또는 minor, major
-npm publish
+cd /Users/1003899/github/voc-automation-mcp-server
+
+# 버전 업데이트 (pyproject.toml 수정)
+# version = "2.0.1"
+
+# 빌드 & 배포
+uv build
+uv publish
 ```
 
 ✅ 배포 완료!
@@ -27,33 +36,73 @@ npm publish
 
 ## 사용자: 사용 방법
 
+### 사전 요구: uv 설치
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
 ### 단 1개 파일만 수정하면 끝!
 
-**파일 위치**: 
-- macOS/Linux: `~/.cursor/mcp.json` 또는 `~/.config/cursor/mcp.json`
+**파일 위치**:
+
+- macOS/Linux: `~/.cursor/mcp.json`
 - Windows: `%APPDATA%\Cursor\mcp.json`
 
 **내용 추가**:
+
 ```json
 {
   "mcpServers": {
-    "voc-pii-security": {
-      "command": "npx",
-      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server", "voc-pii-security"]
+    "pii-security": {
+      "command": "uvx",
+      "args": [
+        "--index-url",
+        "http://nexus.skplanet.com/repository/team-vas-pypi-group/simple/",
+        "--from",
+        "voc-automation-mcp-server",
+        "voc-pii-security"
+      ]
     },
     "voc-analysis": {
-      "command": "npx",
-      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server", "voc-analysis"]
+      "command": "uvx",
+      "args": [
+        "--index-url",
+        "http://nexus.skplanet.com/repository/team-vas-pypi-group/simple/",
+        "--from",
+        "voc-automation-mcp-server",
+        "voc-analysis"
+      ]
     },
-    "voc-jira-integration": {
-      "command": "npx",
-      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server", "voc-jira-integration"],
+    "jira-integration": {
+      "command": "uvx",
+      "args": [
+        "--index-url",
+        "http://nexus.skplanet.com/repository/team-vas-pypi-group/simple/",
+        "--from",
+        "voc-automation-mcp-server",
+        "voc-jira-integration"
+      ],
       "env": {
         "JIRA_BASE_URL": "https://jira.skplanet.com",
         "JIRA_EMAIL": "your-username@sk.com",
         "JIRA_API_TOKEN": "your-jira-api-token",
         "JIRA_PROJECT_KEY": "VRBT",
         "ASSIGNEE_BIZRING": "your-jira-username"
+      }
+    },
+    "bitbucket-integration": {
+      "command": "uvx",
+      "args": [
+        "--index-url",
+        "http://nexus.skplanet.com/repository/team-vas-pypi-group/simple/",
+        "--from",
+        "voc-automation-mcp-server",
+        "voc-bitbucket-integration"
+      ],
+      "env": {
+        "BITBUCKET_BASE_URL": "http://code.skplanet.com",
+        "BITBUCKET_TOKEN": "your-bitbucket-token"
       }
     }
   }
@@ -64,111 +113,86 @@ npm publish
 
 ---
 
-## 💡 주요 포인트
+## 💡 npx vs uvx 비교
 
-### args 필드 설명
+| TypeScript (기존)      | Python (새 버전)                   |
+| ---------------------- | ---------------------------------- |
+| `npx`                  | `uvx`                              |
+| `-y -p @sk-planet/...` | `--from voc-automation-mcp-server` |
+| `npm publish`          | `uv publish`                       |
+| `.npmrc`               | 환경변수 또는 `uv.toml`            |
+
+### 기존 npx 방식
+
 ```json
+"command": "npx",
 "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server", "voc-jira-integration"]
 ```
 
-- `-y`: 자동으로 yes (프롬프트 없이 설치)
-- `-p`: 패키지 지정
-- `@sk-planet/voc-automation-mcp-server`: Nexus의 패키지 이름
-- `voc-jira-integration`: 실행할 bin 명령어 (package.json의 bin 필드)
+### 새로운 uvx 방식
 
-### 별도 설치 불필요!
-- ❌ `npm install` 필요 없음
-- ❌ Git clone 필요 없음
-- ✅ `npx`가 Nexus에서 자동으로 다운로드 & 실행
-
-### 자동 업데이트
-- Cursor 재시작 시 자동으로 최신 버전 확인
-- 수동 업데이트: `npx clear-npx-cache` 실행 후 Cursor 재시작
+```json
+"command": "uvx",
+"args": ["--index-url", "http://nexus.skplanet.com/repository/team-vas-pypi-group/simple/", "--from", "voc-automation-mcp-server", "voc-jira-integration"]
+```
 
 ---
 
-## 🔧 package.json 핵심 설정
+## 🔧 별도 설치 불필요!
 
-```json
-{
-  "name": "@sk-planet/voc-automation-mcp-server",
-  "version": "1.0.0",
-  "bin": {
-    "voc-pii-security": "./servers/pii-security-server/dist/index.js",
-    "voc-analysis": "./servers/voc-analysis-server/dist/index.js",
-    "voc-jira-integration": "./servers/jira-integration-server/dist/index.js",
-    "voc-internal-api": "./servers/internal-api-server/dist/index.js"
-  },
-  "publishConfig": {
-    "registry": "https://nexus.skplanet.com/repository/npm-private/",
-    "access": "restricted"
-  },
-  "files": [
-    "servers/*/dist/**/*",
-    "servers/*/package.json",
-    "shared/dist/**/*",
-    "shared/package.json"
-  ]
-}
-```
+- ❌ `pip install` 필요 없음
+- ❌ Git clone 필요 없음
+- ✅ `uvx`가 Nexus에서 자동으로 다운로드 & 실행
 
 ---
 
 ## 📋 체크리스트
 
 ### 배포 전
-- [x] package.json의 `name`을 `@sk-planet/voc-automation-mcp-server`로 변경
-- [x] `bin` 필드에 4개 서버 추가
-- [x] `publishConfig.registry`를 Nexus URL로 설정
-- [x] 모든 서버의 index.ts에 shebang (`#!/usr/bin/env node`) 포함
-- [x] 빌드 후 dist/index.js에 shebang 포함 확인
+
+- [x] pyproject.toml의 `version` 업데이트
+- [x] `uv build` 성공 확인
+- [x] Nexus 인증 정보 설정
 
 ### 배포 후
-- [ ] `npm view @sk-planet/voc-automation-mcp-server`로 확인
+
+- [ ] Nexus 웹 UI에서 패키지 확인
 - [ ] 다른 개발자가 mcp.json 설정 후 정상 작동하는지 테스트
 - [ ] Slack/이메일로 사용 가이드 공유
 
 ---
 
-## 🚀 다음 단계
-
-1. **지금 바로 배포**:
-   ```bash
-   cd /Users/1004359/voc-automation-mcp-server
-   npm run build
-   npm publish
-   ```
-
-2. **팀원들에게 공유**:
-   - 이 파일 링크: `NEXUS_QUICK_GUIDE.md`
-   - 또는 예시 파일: `examples/mcp-config-example.json`
-
-3. **상세 문서**:
-   - 전체 가이드: [`docs/NEXUS_DEPLOYMENT.md`](docs/NEXUS_DEPLOYMENT.md)
-   - 배포 체크리스트: [`DEPLOYMENT_CHECKLIST.md`](DEPLOYMENT_CHECKLIST.md)
-
----
-
 ## ❓ FAQ
 
-**Q: Nexus 인증이 안돼요**
+**Q: uv/uvx가 없어요**
+
 ```bash
-npm logout
-npm login --registry=https://nexus.skplanet.com/repository/npm-private/
+curl -LsSf https://astral.sh/uv/install.sh | sh
+# 터미널 재시작
 ```
 
-**Q: 사용자가 "permission denied" 에러를 받아요**
-- 빌드된 파일에 shebang이 있는지 확인: `head -n 1 servers/*/dist/index.js`
-- npm이 자동으로 실행 권한을 부여하므로 추가 설정 불필요
+**Q: Nexus 인증이 안돼요**
+
+```bash
+# IT 팀에 team-vas-pypi-group 레포지토리 접근 권한 요청
+# 또는 Nexus 관리자에게 문의
+
+# VPN 연결 확인 (내부망 접근 필요)
+curl -v http://nexus.skplanet.com/repository/team-vas-pypi-group/
+```
 
 **Q: 특정 버전만 사용하고 싶어요**
+
 ```json
-"args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@1.2.3", "voc-jira-integration"]
+"args": ["--index-url", "...", "--from", "voc-automation-mcp-server==2.0.1", "voc-jira-integration"]
 ```
 
-**Q: Nexus URL이 틀린 것 같아요**
-- IT 팀에 확인: 실제 Nexus npm registry URL
-- 또는 기존 사용 중인 private package의 registry 확인
+**Q: 캐시를 지우고 최신 버전을 받고 싶어요**
+
+```bash
+uv cache clean
+# Cursor 재시작
+```
 
 ---
 

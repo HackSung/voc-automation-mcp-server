@@ -5,11 +5,73 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-01-29
+
+### Changed - Major Refactoring
+
+**Python/FastMCP로 완전 리팩토링**
+
+#### Architecture
+
+- TypeScript → Python 3.13+ 전환
+- @modelcontextprotocol/sdk → FastMCP 2.14+ 전환
+- npm workspaces → Python src-layout 전환
+- esbuild → hatchling 빌드 시스템
+- npm/npx → uv/uvx 패키지 관리
+
+#### 패키지 구조
+
+```
+src/
+├── shared/           # 공통 유틸리티
+├── pii_security/     # PII Security Server
+├── voc_analysis/     # VOC Analysis Server
+├── jira_integration/ # Jira Integration Server
+├── bitbucket_integration/ # Bitbucket Integration Server
+└── internal_api/     # Internal API Server
+```
+
+#### 의존성 변경
+
+- `pydantic-settings` - 환경변수 설정
+- `httpx` - 비동기 HTTP 클라이언트
+- `tenacity` - 재시도 로직
+- `openai` - 임베딩 API
+
+#### 설정 방식 변경
+
+- npm/npx → uv/pip
+- `~/.cursor/mcp.json`의 command를 `uv run` 방식으로 변경
+
+### Added
+
+- FastMCP 데코레이터 기반 Tool 정의
+- 타입 힌트 완전 지원 (py.typed)
+- Python용 CI 워크플로우 (ruff, mypy)
+
+### Removed
+
+- TypeScript 소스 코드
+- Node.js 관련 설정 (package.json, tsconfig.json)
+- npm 스크립트
+
+---
+
+## [1.0.8] - 2026-01-21
+
+### Added
+
+- Bitbucket Integration Server 추가
+- 첨부파일 다운로드 기능
+
+---
+
 ## [1.0.0] - 2026-01-07
 
 ### Added
 
 #### PII Security Server
+
 - 개인정보 자동 감지 및 비식별화
   - 이메일 주소
   - 전화번호 (한국 형식)
@@ -20,6 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 세션 자동 정리 메커니즘
 
 #### VOC Analysis Server
+
 - LLM 기반 VOC 분석
   - Intent 분류 (5가지 유형)
   - 우선순위 자동 판단 (4단계)
@@ -30,6 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 중복 이슈 감지
 
 #### Jira Integration Server
+
 - Jira 이슈 자동 생성
 - 카테고리 기반 담당자 자동 할당
 - 이슈 상태 전환
@@ -37,6 +101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MS Teams Adaptive Card 알림
 
 #### Internal API Server
+
 - 레거시 시스템 연동
 - 사용자 상태 조회 (구독/인증/해지)
 - 에러 컨텍스트 조회 (8가지 표준 에러)
@@ -44,12 +109,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 시스템 헬스체크
 
 #### 공통 유틸리티
-- Exponential backoff 재시도 로직
+
+- Exponential backoff 재시도 로직 (tenacity)
 - 민감 정보 마스킹 로거
-- 환경변수 검증 및 관리
-- TypeScript 완전 지원
+- 환경변수 검증 및 관리 (pydantic-settings)
+- Python 타입 힌트 완전 지원
 
 #### 문서
+
 - 한글 README.md
 - 상세한 사용자 가이드
 - API 명세서
@@ -58,11 +125,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nexus 배포 가이드
 
 #### 예제
+
 - 5가지 VOC 시나리오 샘플
 - Cursor 프롬프트 템플릿
 - 실전 워크플로우 예제
 
 ### Security
+
 - PII 데이터 메모리 전용 저장 (디스크 미기록)
 - 1시간 후 자동 삭제
 - API 키 환경변수 관리
@@ -71,11 +140,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LLM에 PII 원문 전송 차단
 
 ### Performance
+
 - 병렬 LLM 호출로 분석 속도 향상
 - 재시도 로직으로 안정성 확보
 - In-Memory 캐싱으로 빠른 응답
 
 ### Infrastructure
+
 - Monorepo 구조 (npm workspaces)
 - 4개 독립 MCP 서버
 - 공유 라이브러리
@@ -86,6 +157,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
+
 - [ ] 더 많은 PII 패턴 지원 (여권번호, 주소 등)
 - [ ] VOC 자동 분류 정확도 향상
 - [ ] 다국어 지원 강화
@@ -96,6 +168,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [ ] Docker 이미지 제공
 
 ### Known Issues
+
 - 일부 특수 형식의 전화번호 감지 안됨
 - LLM 환각 현상 가끔 발생 (재시도로 해결 가능)
 - 대량 배치 처리 시 속도 저하
@@ -104,16 +177,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History
 
-- **1.0.0** (2026-01-07) - 최초 릴리스
+- **2.0.0** (2026-01-29) - Python 3.13+ / FastMCP 리팩토링
+- **1.0.8** (2026-01-21) - Bitbucket Integration 추가
+- **1.0.0** (2026-01-07) - 최초 릴리스 (TypeScript)
 
 ---
 
 ## Migration Guide
 
 ### From: Manual VOC Processing
+
 ### To: Automated VOC Processing
 
 #### Before
+
 1. 고객 VOC 수동 복사
 2. 개인정보 직접 확인 및 삭제
 3. 수동으로 우선순위 판단
@@ -124,6 +201,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 **소요 시간**: 약 10-15분/건
 
 #### After
+
 1. VOC 텍스트를 Cursor에 붙여넣기
 2. 프롬프트 한 줄 실행
 3. 완료
@@ -147,4 +225,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 📧 Email: it-support@your-company.com
 - 💬 Slack: #voc-automation
 - 📝 Jira: IT-SUPPORT 프로젝트
-

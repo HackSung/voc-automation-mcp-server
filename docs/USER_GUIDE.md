@@ -19,12 +19,13 @@
 ### 필요한 것
 
 ✅ Cursor Editor 설치  
-✅ Node.js 18 이상  
+✅ Python 3.13 이상  
+✅ uv (권장) 또는 pip  
 ✅ Jira 계정 및 API 토큰  
 ✅ ~~OpenAI 또는 Anthropic API 키~~ **더 이상 필요 없음! (v2.0)**  
 ✅ 환경변수 설정 완료
 
-> **🎉 v2.0 업데이트**: VOC 분석에 Cursor의 LLM을 사용하므로 별도 LLM API 키가 필요 없습니다!  
+> **🎉 v2.0 업데이트**: VOC 분석에 Cursor의 LLM을 사용하므로 별도 LLM API 키가 필요 없습니다!
 
 ### 설치 확인
 
@@ -37,12 +38,14 @@ Cursor 채팅창에서 다음을 입력:
 **예상 결과**: 다음 도구들이 표시되어야 합니다.
 
 #### PII Security Server (4개)
+
 - `detectAndAnonymizePII` - 개인정보 감지 및 비식별화
 - `restoreOriginalText` - 원문 복원
 - `clearSession` - 세션 정리
 - `getStats` - 통계 조회
 
 #### VOC Analysis Server (5개) - **v2.0 업데이트**
+
 - `generateVOCAnalysisPrompt` - VOC 분석 프롬프트 생성
 - `parseVOCAnalysis` - 분석 결과 파싱
 - `formatVOCAnalysis` - 결과 포맷팅
@@ -50,12 +53,14 @@ Cursor 채팅창에서 다음을 입력:
 - `indexIssue` - 이슈 인덱싱
 
 #### Jira Integration Server (4개)
+
 - `createJiraIssue` - Jira 이슈 생성
 - `addComment` - 코멘트 추가
 - `transitionIssue` - 상태 전환
 - `getIssue` - 이슈 조회
 
 #### Internal API Server (5개)
+
 - `queryUserStatus` - 사용자 상태 조회
 - `getErrorContext` - 에러 컨텍스트 조회
 - `getErrorLogs` - 에러 로그 조회
@@ -106,6 +111,7 @@ Cursor 채팅창에 다음과 같이 입력:
 LLM이 자동으로 다음을 수행합니다:
 
 1. **개인정보 감지**
+
    ```json
    {
      "이메일": "kim.cheolsu@example.com → [EMAIL_001]",
@@ -114,6 +120,7 @@ LLM이 자동으로 다음을 수행합니다:
    ```
 
 2. **VOC 분석**
+
    ```json
    {
      "의도": "complaint",
@@ -124,6 +131,7 @@ LLM이 자동으로 다음을 수행합니다:
    ```
 
 3. **Jira 티켓 생성**
+
    ```
    티켓 번호: VOC-456
    URL: https://your-company.atlassian.net/browse/VOC-456
@@ -168,7 +176,7 @@ LLM이 자동으로 다음을 수행합니다:
 ```
 다음 VOC를 에러 컨텍스트와 함께 분석해줘:
 
-"결제가 안돼요. BILL_001 에러가 나옵니다. 
+"결제가 안돼요. BILL_001 에러가 나옵니다.
 카드는 정상인데 왜 이러죠?"
 
 단계:
@@ -189,7 +197,7 @@ LLM이 자동으로 다음을 수행합니다:
 ```
 다음 VOC를 사용자 계정 상태와 함께 분석해줘:
 
-"구독 취소했는데 아직도 과금되고 있어요. 
+"구독 취소했는데 아직도 과금되고 있어요.
 사용자 ID: USER-12345"
 
 단계:
@@ -243,7 +251,7 @@ VOC 3:
 **상황**: Critical 버그 리포트
 
 ```
-"긴급! 결제 시스템이 완전히 다운되었습니다! 
+"긴급! 결제 시스템이 완전히 다운되었습니다!
 2시간 전부터 모든 고객이 결제를 못하고 있습니다.
 에러 코드: BILL_001
 담당자: admin@company.com / 010-1111-2222"
@@ -420,6 +428,7 @@ Jira 티켓 생성 실패 → 무시하고 계속 진행
 ### 문제 1: "Unknown tool" 에러
 
 **증상**:
+
 ```
 Error: Unknown tool: detectAndAnonymizePII
 ```
@@ -427,14 +436,16 @@ Error: Unknown tool: detectAndAnonymizePII
 **원인**: MCP 서버가 Cursor에 등록되지 않음
 
 **해결**:
+
 1. `~/.cursor/mcp.json` 파일 확인
 2. 경로가 올바른지 확인
 3. Cursor 완전 재시작
-4. 빌드 완료 확인: `ls servers/*/dist/index.js`
+4. 패키지 설치 확인: `uv run python -c "from pii_security.detector import PIIDetector; print('OK')"`
 
 ### 문제 2: Jira API 에러
 
 **증상**:
+
 ```
 Error: Jira API error: 401 - Unauthorized
 ```
@@ -442,6 +453,7 @@ Error: Jira API error: 401 - Unauthorized
 **원인**: Jira 인증 실패
 
 **해결**:
+
 1. `~/.cursor/mcp.json`의 `jira-integration` 설정의 `env`에 `JIRA_*` 값이 설정되어 있는지 확인
 2. API 토큰 재발급:
    - https://id.atlassian.com/manage-profile/security/api-tokens
@@ -450,6 +462,7 @@ Error: Jira API error: 401 - Unauthorized
 ### 문제 3: LLM 응답이 이상함
 
 **증상**:
+
 ```
 분석 결과가 JSON이 아님
 또는
@@ -459,6 +472,7 @@ Error: Jira API error: 401 - Unauthorized
 **원인**: LLM 환각(Hallucination)
 
 **해결**:
+
 1. 프롬프트에 명확한 지시 추가:
    ```
    반드시 유효한 JSON으로만 응답해줘.
@@ -470,6 +484,7 @@ Error: Jira API error: 401 - Unauthorized
 ### 문제 4: 세션을 찾을 수 없음
 
 **증상**:
+
 ```
 Error: No mapping found for session: voc-20260107-001
 ```
@@ -477,6 +492,7 @@ Error: No mapping found for session: voc-20260107-001
 **원인**: 세션 만료 (1시간 TTL) 또는 잘못된 세션 ID
 
 **해결**:
+
 1. 세션 생성 후 1시간 내에 복원
 2. 세션 ID 오타 확인
 3. 워크플로우를 처음부터 다시 시작
@@ -484,6 +500,7 @@ Error: No mapping found for session: voc-20260107-001
 ### 문제 5: 개인정보 감지 안됨
 
 **증상**:
+
 ```
 hasPII: false (실제로는 PII가 있음)
 ```
@@ -491,18 +508,21 @@ hasPII: false (실제로는 PII가 있음)
 **원인**: 지원하지 않는 PII 형식
 
 **현재 지원**:
+
 - 이메일: `user@example.com`
 - 전화번호: `010-1234-5678`, `01012345678`
 - 주민번호: `123456-1234567`
 - 카드번호: `1234-5678-9012-3456`
 
 **해결**:
+
 - PII 형식 확인
 - 정규식 패턴 추가 필요 시 개발팀 문의
 
 ### 문제 6: 메모리 부족
 
 **증상**:
+
 ```
 JavaScript heap out of memory
 ```
@@ -510,6 +530,7 @@ JavaScript heap out of memory
 **원인**: 세션 정리 안됨 (누적)
 
 **해결**:
+
 1. 모든 워크플로우 후 `clearSession` 실행
 2. PII 서버 재시작:
    ```bash
@@ -544,6 +565,7 @@ VOC: "I can't login. My email is john@example.com"
 **A**: 두 가지 방법이 있습니다.
 
 1. **환경변수 설정** (Jira Server/Data Center 기준 username):
+
    ```bash
    ASSIGNEE_AUTH=jira-username
    ```
@@ -610,6 +632,7 @@ Cursor 메뉴 → Help → Show Logs
 ```
 
 검색 키워드:
+
 - `[PIISecurityServer]`
 - `[VOCAnalysisServer]`
 - `[JiraIntegrationServer]`
@@ -626,19 +649,18 @@ Cursor 메뉴 → Help → Show Logs
 
 ### Q10: 업데이트는 어떻게 하나요?
 
-**A**: 사내 Nexus에서 최신 버전 다운로드
+**A**: 사내 Nexus에서 최신 버전 자동 다운로드
 
 ```bash
-# 1. 최신 버전 확인
-npm view @your-company/voc-automation-mcp-server versions
+# uvx 사용 시 (Nexus 배포)
+# uvx 캐시 클리어 후 Cursor 재시작하면 최신 버전 자동 다운로드
+uv cache clean
 
-# 2. 업데이트
-npm update @your-company/voc-automation-mcp-server
+# 로컬 개발 시
+git pull
+uv sync
 
-# 3. 재빌드
-npm run build
-
-# 4. Cursor 재시작
+# Cursor 재시작
 ```
 
 ---
@@ -667,7 +689,6 @@ npm run build
 
 ---
 
-**마지막 업데이트**: 2026-01-07  
-**버전**: 1.0.0  
+**마지막 업데이트**: 2026-01-29  
+**버전**: 2.0.0 (Python/FastMCP)  
 **작성자**: VOC Automation Team
-
