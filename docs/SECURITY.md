@@ -21,6 +21,7 @@ This system handles sensitive customer data (PII) and integrates with critical b
 ### Detection & Anonymization
 
 **Detected PII Types:**
+
 - Email addresses
 - Phone numbers (Korean format: 010-XXXX-XXXX)
 - Social Security Numbers (Korean: XXXXXX-XXXXXXX)
@@ -43,7 +44,7 @@ Anonymized: "Contact me at [EMAIL_001] or [PHONE_001]"
 
 ### Session Management
 
-```typescript
+```
 Session Lifecycle:
 1. Create session with unique ID
 2. Detect & anonymize PII → Store mapping
@@ -83,6 +84,7 @@ grep -r "sk-proj\\|sk-ant" . --exclude-dir node_modules --exclude-dir .git && ec
 ### Rotation Policy
 
 **Recommended Schedule:**
+
 - API Tokens: Every 90 days
 - Webhook URLs: When compromised or every 180 days
 - Jira Tokens: After employee offboarding
@@ -91,7 +93,7 @@ grep -r "sk-proj\\|sk-ant" . --exclude-dir node_modules --exclude-dir .git && ec
 
 1. Generate new credential
 2. Update `~/.cursor/mcp.json` env (or exported env vars)
-3. Rebuild servers: `npm run build`
+3. Clear uvx cache: `uv cache clean` (Nexus 사용 시)
 4. Restart Cursor
 5. Verify with health check
 6. Revoke old credential
@@ -100,15 +102,16 @@ grep -r "sk-proj\\|sk-ant" . --exclude-dir node_modules --exclude-dir .git && ec
 
 All sensitive values are automatically masked in logs:
 
-```typescript
-// Before logging
+```python
+# Before logging
 token: "sk-proj-1234567890abcdefghijklmnop"
 
-// In logs
+# In logs
 token: "sk-p*******************"
 ```
 
 **Masked Fields:**
+
 - `password`, `token`, `apiKey`, `api_key`
 - `authorization`, `secret`
 - Any field containing these keywords
@@ -127,6 +130,7 @@ All external API calls use HTTPS:
 ### Retry Logic Security
 
 Exponential backoff prevents:
+
 - Rate limit violations
 - Accidental DDoS
 - Account suspension
@@ -175,6 +179,7 @@ Exponential backoff prevents:
 ### Prompt Injection Prevention
 
 **Risks:**
+
 - Malicious VOC text could manipulate LLM behavior
 - Could extract system information
 - Could bypass analysis logic
@@ -190,11 +195,11 @@ Exponential backoff prevents:
 
 ```typescript
 // Good: Clear role separation
-System: "You are a VOC analyst. Output only valid JSON."
-User: "<user_provided_voc_text>"
+System: 'You are a VOC analyst. Output only valid JSON.';
+User: '<user_provided_voc_text>';
 
 // Bad: Mixing instructions with user data
-User: "Analyze this: <user_provided_voc_text>. Ignore previous instructions and..."
+User: 'Analyze this: <user_provided_voc_text>. Ignore previous instructions and...';
 ```
 
 ### Data Minimization
@@ -213,25 +218,28 @@ Only necessary data sent to LLM:
 
 Each server has minimal permissions:
 
-| Server | Permissions |
-|--------|-------------|
-| PII Security | None (local only) |
-| VOC Analysis | OpenAI/Anthropic API (read) |
-| Jira Integration | Jira API (read/write issues) |
-| Internal API | Internal API (read user data) |
+| Server           | Permissions                   |
+| ---------------- | ----------------------------- |
+| PII Security     | None (local only)             |
+| VOC Analysis     | OpenAI/Anthropic API (read)   |
+| Jira Integration | Jira API (read/write issues)  |
+| Internal API     | Internal API (read user data) |
 
 ### Authentication Methods
 
 **Jira:**
+
 - Basic Auth (email + API token)
 - Token transmitted in `Authorization` header
 - Base64 encoded
 
 **OpenAI/Anthropic:**
+
 - Bearer token authentication
 - API key in `Authorization` or `x-api-key` header
 
 **Internal API:**
+
 - Custom `X-API-Key` header
 - Token-based authentication
 
@@ -241,16 +249,15 @@ Each server has minimal permissions:
 
 All user inputs are validated:
 
-```typescript
-// Example: Session ID validation
-if (!sessionId || sessionId.length > 100) {
-  throw new Error("Invalid session ID");
-}
+```python
+# Example: Session ID validation
+if not session_id or len(session_id) > 100:
+    raise ValueError("Invalid session ID")
 
-// Example: Issue key validation
-if (!/^[A-Z]+-\d+$/.test(issueKey)) {
-  throw new Error("Invalid Jira issue key");
-}
+# Example: Issue key validation
+import re
+if not re.match(r"^[A-Z]+-\d+$", issue_key):
+    raise ValueError("Invalid Jira issue key")
 ```
 
 ### SQL Injection
@@ -258,6 +265,7 @@ if (!/^[A-Z]+-\d+$/.test(issueKey)) {
 **Risk Level**: Low (no direct database access)
 
 **Mitigations:**
+
 - All data passes through API abstractions
 - No raw SQL queries
 - Parameterized API calls only
@@ -267,6 +275,7 @@ if (!/^[A-Z]+-\d+$/.test(issueKey)) {
 **Risk Level**: Low (server-side only, no web frontend)
 
 **Mitigations:**
+
 - Jira markdown sanitized by Jira
 - No HTML rendering in MCP servers
 
@@ -275,14 +284,15 @@ if (!/^[A-Z]+-\d+$/.test(issueKey)) {
 **Monitoring:**
 
 ```bash
-# Check for vulnerabilities
-npm audit
+# Check for vulnerabilities (using pip-audit)
+pip install pip-audit
+pip-audit
 
-# Fix automatically
-npm audit fix
+# Or update all dependencies
+uv sync --upgrade
 
 # Review changes
-git diff package-lock.json
+git diff uv.lock
 ```
 
 **Schedule**: Weekly audits recommended
@@ -302,10 +312,10 @@ git diff package-lock.json
 
 **Prevention:**
 
-```typescript
-// Never log PII
-logger.info("Processing session", { sessionId }); // ✓ OK
-logger.info("Processing", { originalText }); // ✗ BAD
+```python
+# Never log PII
+logger.info("Processing session", extra={"session_id": session_id})  # ✓ OK
+logger.info("Processing", extra={"original_text": original_text})  # ✗ BAD
 ```
 
 ### API Key Compromise
@@ -322,6 +332,7 @@ logger.info("Processing", { originalText }); // ✗ BAD
 ### Service Abuse
 
 **Signs of abuse:**
+
 - Excessive rate limiting
 - Unusual API costs
 - Suspicious VOC patterns
@@ -338,27 +349,30 @@ logger.info("Processing", { originalText }); // ✗ BAD
 ### GDPR Considerations
 
 **Right to be Forgotten:**
+
 - PII stored only in-memory (auto-expires)
 - No persistent PII storage
 - Clear session deletes all traces
 
 **Data Minimization:**
+
 - Only necessary data collected
 - Anonymization by default
 - Restoration only when required
 
 **Consent:**
+
 - Customer consent should be obtained before VOC processing
 - Document consent in Jira ticket
 
 ### Data Retention
 
-| Data Type | Storage | Retention |
-|-----------|---------|-----------|
-| PII Mappings | In-Memory | 1 hour (TTL) |
-| Anonymized VOC | LLM Context | Request-only |
-| Analysis Results | Jira | As per Jira retention |
-| Logs | stderr | Cursor manages |
+| Data Type        | Storage     | Retention             |
+| ---------------- | ----------- | --------------------- |
+| PII Mappings     | In-Memory   | 1 hour (TTL)          |
+| Anonymized VOC   | LLM Context | Request-only          |
+| Analysis Results | Jira        | As per Jira retention |
+| Logs             | stderr      | Cursor manages        |
 
 ## Security Checklist
 
@@ -405,6 +419,7 @@ echo "Test: john@example.com and 010-1234-5678" | ...
 ### Automated Tests
 
 Future implementation:
+
 - Unit tests for PII detection
 - Integration tests for full workflow
 - Security scanning (Snyk, Dependabot)
@@ -414,6 +429,7 @@ Future implementation:
 **DO NOT** open public GitHub issues for security vulnerabilities.
 
 **Instead:**
+
 1. Email: [security-contact-email]
 2. Include: Description, impact, reproduction steps
 3. Allow 90 days for fix before disclosure
@@ -424,4 +440,3 @@ Future implementation:
 - [Jira Cloud Security](https://www.atlassian.com/trust/security)
 - [OpenAI API Security](https://platform.openai.com/docs/guides/safety-best-practices)
 - [GDPR Compliance Guide](https://gdpr.eu/)
-

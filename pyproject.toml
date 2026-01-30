@@ -1,0 +1,92 @@
+[project]
+name = "voc-automation-mcp-server"
+version = "2.0.0"
+description = "VOC 처리 자동화 MCP 서버 - Python/FastMCP 버전"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.13"
+authors = [
+    {name = "VOC Automation Team", email = "voc-team@your-company.com"}
+]
+keywords = [
+    "mcp",
+    "voc",
+    "voice-of-customer",
+    "automation",
+    "pii",
+    "privacy",
+    "jira",
+    "llm",
+    "ai",
+    "customer-service",
+    "한국어",
+    "개인정보보호"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "fastmcp>=2.14.0",
+    "pydantic-settings>=2.0",
+    "httpx>=0.25",
+    "tenacity>=8.2",
+    "openai>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+    "mypy>=1.10",
+]
+
+[project.scripts]
+voc-pii-security = "pii_security.server:main"
+voc-analysis = "voc_analysis.server:main"
+voc-jira-integration = "jira_integration.server:main"
+voc-bitbucket-integration = "bitbucket_integration.server:main"
+voc-internal-api = "internal_api.server:main"
+
+[project.urls]
+Homepage = "https://github.com/HackSung/voc-automation-mcp-server"
+Repository = "https://github.com/HackSung/voc-automation-mcp-server.git"
+Issues = "https://github.com/HackSung/voc-automation-mcp-server/issues"
+
+# Nexus PyPI 배포 설정 (uv publish 사용 시)
+# 실제 배포 시 환경변수로 인증 정보 제공:
+#   UV_PUBLISH_URL=http://nexus.skplanet.com/repository/team-vas-pypi-releases/
+#   UV_PUBLISH_USERNAME=your-username
+#   UV_PUBLISH_PASSWORD=your-password
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/shared", "src/pii_security", "src/voc_analysis", "src/jira_integration", "src/bitbucket_integration", "src/internal_api"]
+
+[tool.hatch.build.targets.wheel.sources]
+"src" = ""
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

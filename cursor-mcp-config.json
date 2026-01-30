@@ -1,40 +1,41 @@
 {
   "mcpServers": {
     "pii-security": {
-      "command": "npx",
-      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-pii-security"],
+      "command": "uv",
+      "args": ["run", "--directory", "<PROJECT_PATH>", "voc-pii-security"],
       "env": {}
     },
     "voc-analysis": {
-      "command": "npx",
-      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-analysis"],
-      "env": {}
+      "command": "uv",
+      "args": ["run", "--directory", "<PROJECT_PATH>", "voc-analysis"],
+      "env": {
+        "OPENAI_API_KEY": "YOUR_OPENAI_API_KEY (optional)"
+      }
     },
     "jira-integration": {
-      "command": "npx",
-      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-jira-integration"],
+      "command": "uv",
+      "args": ["run", "--directory", "<PROJECT_PATH>", "voc-jira-integration"],
       "env": {
-        "JIRA_BASE_URL": "https://jira.skplanet.com",
-        "JIRA_EMAIL": "cannan@sk.com",
+        "JIRA_BASE_URL": "https://jira.your-company.com",
+        "JIRA_EMAIL": "your-email@company.com",
         "JIRA_API_TOKEN": "YOUR_JIRA_API_TOKEN",
         "JIRA_PROJECT_KEY": "VRBT",
-        "ASSIGNEE_DEFAULT": "1004359",
-        "ASSIGNEE_AUTH": "1004359",
-        "ASSIGNEE_BIZRING": "1004359"
+        "ASSIGNEE_DEFAULT": "your-jira-username",
+        "ASSIGNEE_BIZRING": "your-jira-username"
       }
     },
     "bitbucket-integration": {
-      "command": "npx",
-      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-bitbucket-integration"],
+      "command": "uv",
+      "args": ["run", "--directory", "<PROJECT_PATH>", "voc-bitbucket-integration"],
       "env": {
-        "BITBUCKET_BASE_URL": "http://code.skplanet.com",
+        "BITBUCKET_BASE_URL": "http://code.your-company.com",
         "BITBUCKET_TOKEN": "YOUR_BITBUCKET_TOKEN",
         "BITBUCKET_PROJECT_KEY": "VRBT"
       }
     },
     "internal-api": {
-      "command": "npx",
-      "args": ["-y", "-p", "@sk-planet/voc-automation-mcp-server@latest", "voc-internal-api"],
+      "command": "uv",
+      "args": ["run", "--directory", "<PROJECT_PATH>", "voc-internal-api"],
       "env": {
         "INTERNAL_API_BASE_URL": "YOUR_INTERNAL_API_BASE_URL",
         "INTERNAL_API_KEY": "YOUR_INTERNAL_API_KEY"

@@ -19,17 +19,18 @@
 
 ```bash
 # 1. 민감 정보가 코드에 하드코딩되어 있지 않은지 확인
-grep -r "sk-" --include="*.ts" --include="*.js" servers/
+grep -r "sk-" --include="*.py" src/
 # 결과가 없어야 함 ✅
 
-grep -r "api.*token.*=" --include="*.ts" servers/ | grep -v "process.env"
+grep -r "api.*token.*=" --include="*.py" src/ | grep -v "os.environ"
 # 환경변수만 사용해야 함 ✅
 
-# 2. node_modules가 .gitignore에 있는지 확인
-cat .gitignore | grep "node_modules"
+# 2. __pycache__와 .venv가 .gitignore에 있는지 확인
+cat .gitignore | grep "__pycache__"
+cat .gitignore | grep ".venv"
 # 결과가 나와야 함 ✅
 
-# 3. dist 폴더가 포함되는지 확인
+# 3. dist 폴더가 .gitignore에 있는지 확인
 cat .gitignore | grep "dist"
 # dist는 빌드 결과이므로 gitignore에 있어야 함 ✅
 ```
@@ -50,13 +51,14 @@ git status
 
 ```bash
 # 깨끗한 상태에서 빌드 테스트
-npm run clean
-npm install
-npm run build
+rm -rf .venv dist
+uv sync
 
-# 모든 서버 빌드 확인
-ls -la servers/*/dist/index.js
-# 4개 파일이 모두 존재해야 함
+# 모든 패키지 임포트 확인
+uv run python -c "from pii_security.detector import PIIDetector; print('OK')"
+uv run python -c "from voc_analysis.prompts import PromptGenerator; print('OK')"
+uv run python -c "from jira_integration.client import JiraClient; print('OK')"
+# 모두 OK가 출력되어야 함 ✅
 ```
 
 ---
@@ -68,17 +70,19 @@ ls -la servers/*/dist/index.js
 1. https://github.com 로그인
 2. 우측 상단 `+` → `New repository`
 3. 저장소 설정:
+
    ```
    Repository name: voc-automation-mcp-server
    Description: 고객 VOC 자동 처리 시스템 - PII 보호, LLM 분석, Jira 자동 티켓팅
-   
+
    ⚪ Public (오픈소스로 공개)
    🔘 Private (사내 전용)
-   
+
    ☐ Add a README file (이미 있으므로 체크 안 함)
    ☐ Add .gitignore (이미 있으므로 체크 안 함)
    ✅ Choose a license: MIT License (선택)
    ```
+
 4. `Create repository` 클릭
 
 ### 옵션 2: GitHub CLI 사용
@@ -194,7 +198,7 @@ git push -u origin main
 GitHub 저장소 페이지에서:
 
 1. 우측 상단 `⚙️ Settings` 클릭 (아니면 About 섹션의 톱니바퀴)
-2. **Description**: 
+2. **Description**:
    ```
    고객 VOC 자동 처리 시스템 - PII 보호, LLM 분석, Jira 자동 티켓팅
    ```
@@ -234,6 +238,7 @@ Branch name pattern: main
 문서를 웹으로 제공:
 
 Settings → Pages:
+
 ```
 Source: Deploy from a branch
 Branch: main
@@ -266,27 +271,33 @@ assignees: ''
 ---
 
 ## 🐛 버그 설명
+
 명확하고 간결하게 버그를 설명해주세요.
 
 ## 📝 재현 방법
+
 1. '...' 로 이동
 2. '...' 클릭
 3. '...' 까지 스크롤
 4. 에러 발생
 
 ## ✅ 예상 동작
+
 무엇이 일어날 것으로 예상했나요?
 
 ## 📸 스크린샷
+
 가능하면 스크린샷을 첨부해주세요.
 
 ## 🖥️ 환경
+
 - OS: [e.g. macOS 14.0]
 - Node.js: [e.g. 18.0.0]
 - Cursor 버전: [e.g. 0.40.0]
 - 패키지 버전: [e.g. 1.0.0]
 
 ## 📋 추가 정보
+
 기타 필요한 정보를 추가해주세요.
 ```
 
@@ -296,12 +307,15 @@ assignees: ''
 
 ```markdown
 ## 📝 변경 사항
+
 이 PR에서 변경된 내용을 설명해주세요.
 
 ## 🎯 관련 이슈
+
 Closes #(이슈 번호)
 
 ## ✅ 체크리스트
+
 - [ ] 코드가 정상적으로 빌드됨
 - [ ] 테스트를 추가/수정함
 - [ ] 문서를 업데이트함
@@ -309,9 +323,11 @@ Closes #(이슈 번호)
 - [ ] 린터 에러가 없음
 
 ## 🧪 테스트 방법
+
 이 변경사항을 어떻게 테스트했나요?
 
 ## 📸 스크린샷 (선택)
+
 UI 변경이 있다면 스크린샷을 첨부해주세요.
 ```
 
@@ -328,8 +344,8 @@ VOC 자동화 MCP 서버 프로젝트에 기여해주셔서 감사합니다!
 
 1. 저장소 포크
 2. 클론: `git clone git@github.com:your-username/voc-automation-mcp-server.git`
-3. 의존성 설치: `npm install`
-4. 빌드: `npm run build`
+3. Python 설치: `uv python install 3.13`
+4. 의존성 설치: `uv sync --all-extras`
 5. 환경변수 설정: `~/.cursor/mcp.json`의 `mcpServers.<server>`의 `env`로 주입
 
 ## 브랜치 전략
@@ -341,13 +357,14 @@ VOC 자동화 MCP 서버 프로젝트에 기여해주셔서 감사합니다!
 - `hotfix/*`: 긴급 수정
 
 ## 커밋 메시지 규칙
-
 ```
+
 <타입>: <제목>
 
 <본문>
 
 <푸터>
+
 ```
 
 타입:
@@ -361,12 +378,14 @@ VOC 자동화 MCP 서버 프로젝트에 기여해주셔서 감사합니다!
 
 예시:
 ```
+
 feat: PII 감지 패턴에 여권번호 추가
 
 여권번호 형식(M12345678)을 감지하고 비식별화하는
 기능을 추가했습니다.
 
 Closes #42
+
 ```
 
 ## 코드 리뷰
@@ -391,40 +410,54 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
-    
+        python-version: ['3.13']
+
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Build
-      run: npm run build
-    
-    - name: Check for sensitive data
-      run: |
-        if grep -r "sk-" servers/ --include="*.ts" --include="*.js"; then
-          echo "❌ API 키가 코드에 포함되어 있습니다!"
-          exit 1
-        fi
-        echo "✅ 민감 정보 검사 통과"
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Verify package imports
+        run: |
+          uv run python -c "from shared.config import get_env_config; print('shared OK')"
+          uv run python -c "from pii_security.detector import PIIDetector; print('pii_security OK')"
+          uv run python -c "from voc_analysis.prompts import PromptGenerator; print('voc_analysis OK')"
+          uv run python -c "from jira_integration.client import JiraClient; print('jira_integration OK')"
+          uv run python -c "from bitbucket_integration.client import BitbucketClient; print('bitbucket_integration OK')"
+          uv run python -c "from internal_api.errors import ErrorResolver; print('internal_api OK')"
+
+      - name: Check for sensitive data
+        run: |
+          if grep -r "sk-" src/ --include="*.py"; then
+            echo "❌ API 키가 코드에 포함되어 있습니다!"
+            exit 1
+          fi
+          echo "✅ 민감 정보 검사 통과"
+
+      - name: Lint
+        run: uv run ruff check src/
+
+      - name: Type check
+        run: uv run mypy src/ --ignore-missing-imports
 ```
 
 ### 2. README 배지 추가
@@ -434,9 +467,9 @@ README.md 상단에 추가:
 ```markdown
 # VOC 처리 자동화 MCP 서버
 
-[![GitHub release](https://img.shields.io/github/v/release/your-username/voc-automation-mcp-server)](https://github.com/your-username/voc-automation-mcp-server/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue?style=flat-square&logo=python)](https://www.python.org/)
+[![FastMCP 2.14+](https://img.shields.io/badge/FastMCP-2.14+-green?style=flat-square)](https://gofastmcp.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![CI Status](https://github.com/your-username/voc-automation-mcp-server/workflows/CI/badge.svg)](https://github.com/your-username/voc-automation-mcp-server/actions)
 
 고객 VOC(Voice of Customer)를 접수부터 Jira 티켓 생성, 알림 발송까지 자동으로 처리하는 MCP(Model Context Protocol) 기반 엔터프라이즈 시스템입니다.
@@ -458,29 +491,31 @@ README.md 상단에 추가:
 
 ### 1. 소셜 미디어
 
-- **Twitter/X**: 
+- **Twitter/X**:
+
   ```
   🎉 VOC 자동화 MCP 서버를 오픈소스로 공개했습니다!
-  
+
   ✨ 특징:
   - 개인정보 자동 보호
   - LLM 기반 분석
   - Jira 자동 티켓팅
   - 15분 → 30초로 시간 단축
-  
+
   🔗 github.com/your-username/voc-automation-mcp-server
-  
+
   #OpenSource #MCP #AI #CustomerService
   ```
 
 - **LinkedIn**:
+
   ```
   고객 VOC 처리를 자동화하는 오픈소스 프로젝트를 공개했습니다.
-  
+
   Model Context Protocol(MCP)을 활용하여 Cursor Editor에서
   고객 불만을 접수하면 개인정보 보호, LLM 분석, Jira 티켓 생성,
   알림 발송까지 30초 만에 완료됩니다.
-  
+
   관심 있으신 분들은 확인해보세요!
   ```
 
@@ -489,7 +524,7 @@ README.md 상단에 추가:
 - **Reddit**: r/opensource, r/MachineLearning
 - **Hacker News**: https://news.ycombinator.com/
 - **Dev.to**: 블로그 포스트 작성
-- **한국 커뮤니티**: 
+- **한국 커뮤니티**:
   - OKKY
   - GeekNews
   - 생활코딩 페이스북 그룹
@@ -523,6 +558,7 @@ VOC 자동화 MCP 서버를 GitHub에 공개했습니다.
 ```
 
 **해결**:
+
 ```bash
 git pull origin main --rebase
 git push origin main
@@ -544,6 +580,7 @@ remote: error: GH001: Large files detected
 ```
 
 **해결**:
+
 ```bash
 # Git LFS 설치
 brew install git-lfs
@@ -575,6 +612,5 @@ git commit -m "chore: Git LFS 설정"
 
 ---
 
-**작성일**: 2026-01-07  
-**버전**: 1.0.0
-
+**작성일**: 2026-01-29  
+**버전**: 2.0.0 (Python/FastMCP)

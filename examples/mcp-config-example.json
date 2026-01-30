@@ -1,53 +1,48 @@
 {
   "mcpServers": {
-    "voc-pii-security": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "-p",
-        "@sk-planet/voc-automation-mcp-server",
-        "voc-pii-security"
-      ],
+    "pii-security": {
+      "command": "uv",
+      "args": ["run", "--directory", "/path/to/voc-automation-mcp-server", "voc-pii-security"],
       "env": {}
     },
     "voc-analysis": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "-p",
-        "@sk-planet/voc-automation-mcp-server",
-        "voc-analysis"
-      ],
-      "env": {}
-    },
-    "voc-jira-integration": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "-p",
-        "@sk-planet/voc-automation-mcp-server",
-        "voc-jira-integration"
-      ],
+      "command": "uv",
+      "args": ["run", "--directory", "/path/to/voc-automation-mcp-server", "voc-analysis"],
       "env": {
-        "JIRA_BASE_URL": "https://jira.skplanet.com",
-        "JIRA_EMAIL": "your-username@sk.com",
-        "JIRA_API_TOKEN": "your-jira-api-token",
-        "JIRA_PROJECT_KEY": "VRBT",
-        "ASSIGNEE_BIZRING": "your-jira-username"
+        "OPENAI_API_KEY": "sk-your-openai-api-key (optional, for similarity search)"
       }
     },
-    "voc-bitbucket-integration": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "-p",
-        "@sk-planet/voc-automation-mcp-server",
-        "voc-bitbucket-integration"
-      ],
+    "jira-integration": {
+      "command": "uv",
+      "args": ["run", "--directory", "/path/to/voc-automation-mcp-server", "voc-jira-integration"],
       "env": {
-        "BITBUCKET_BASE_URL": "http://code.skplanet.com",
-        "BITBUCKET_TOKEN": "your-bitbucket-token",
-        "BITBUCKET_USERNAME": "your-username"
+        "JIRA_BASE_URL": "https://jira.your-company.com",
+        "JIRA_EMAIL": "your-email@company.com",
+        "JIRA_API_TOKEN": "your-jira-api-token",
+        "JIRA_PROJECT_KEY": "VRBT",
+        "ASSIGNEE_DEFAULT": "default-assignee-username",
+        "ASSIGNEE_AUTH": "auth-team-assignee",
+        "ASSIGNEE_BILLING": "billing-team-assignee",
+        "ASSIGNEE_BIZRING": "bizring-team-assignee",
+        "TEAMS_WEBHOOK_URL": "https://outlook.office.com/webhook/... (optional)"
+      }
+    },
+    "bitbucket-integration": {
+      "command": "uv",
+      "args": ["run", "--directory", "/path/to/voc-automation-mcp-server", "voc-bitbucket-integration"],
+      "env": {
+        "BITBUCKET_BASE_URL": "http://code.your-company.com",
+        "BITBUCKET_TOKEN": "your-bitbucket-personal-access-token",
+        "BITBUCKET_PROJECT_KEY": "VRBT",
+        "BITBUCKET_REPO_SLUG": "your-repo-slug (optional)"
+      }
+    },
+    "internal-api": {
+      "command": "uv",
+      "args": ["run", "--directory", "/path/to/voc-automation-mcp-server", "voc-internal-api"],
+      "env": {
+        "INTERNAL_API_BASE_URL": "https://internal-api.your-company.com",
+        "INTERNAL_API_KEY": "your-internal-api-key"
       }
     }
   }

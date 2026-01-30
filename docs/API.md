@@ -22,6 +22,7 @@ Detects and anonymizes personal information to protect sensitive data.
 Detects and anonymizes PII in text.
 
 **Input:**
+
 ```json
 {
   "text": "string - Original text with potential PII",
@@ -30,6 +31,7 @@ Detects and anonymizes PII in text.
 ```
 
 **Output:**
+
 ```json
 {
   "anonymizedText": "string - Text with PII replaced by placeholders",
@@ -50,6 +52,7 @@ Detects and anonymizes PII in text.
 Restores anonymized text to original form.
 
 **Input:**
+
 ```json
 {
   "anonymizedText": "string - Text with placeholders",
@@ -58,6 +61,7 @@ Restores anonymized text to original form.
 ```
 
 **Output:**
+
 ```json
 {
   "originalText": "string - Restored text",
@@ -71,6 +75,7 @@ Restores anonymized text to original form.
 Manually clears PII mapping for a session.
 
 **Input:**
+
 ```json
 {
   "sessionId": "string"
@@ -82,6 +87,7 @@ Manually clears PII mapping for a session.
 Returns store statistics.
 
 **Output:**
+
 ```json
 {
   "totalSessions": "number",
@@ -93,15 +99,18 @@ Returns store statistics.
 
 ## VOC Analysis Server
 
-LLM-based analysis of customer feedback.
+Prompt generation and result parsing for LLM-based VOC analysis.
+
+> **Note (v2.0)**: Cursor의 LLM을 활용하므로 별도 API 키가 필요 없습니다!
 
 ### Tools
 
-#### `analyzeVOC`
+#### `generateVOCAnalysisPrompt`
 
-Main analysis tool using LLM.
+VOC 분석용 프롬프트를 생성합니다. 생성된 프롬프트를 Cursor LLM에 전달하여 분석합니다.
 
 **Input:**
+
 ```json
 {
   "vocText": "string - VOC text (should be anonymized)",
@@ -114,6 +123,29 @@ Main analysis tool using LLM.
 ```
 
 **Output:**
+
+```json
+{
+  "prompt": "string - LLM에 전달할 프롬프트",
+  "vocText": "string - 입력된 VOC 텍스트",
+  "metadata": "object - echoed back"
+}
+```
+
+#### `parseVOCAnalysis`
+
+LLM 응답을 파싱하여 구조화된 분석 결과를 반환합니다.
+
+**Input:**
+
+```json
+{
+  "llmResponse": "string - LLM의 JSON 응답"
+}
+```
+
+**Output:**
+
 ```json
 {
   "intent": "bug_report|feature_request|question|complaint|feedback",
@@ -131,8 +163,28 @@ Main analysis tool using LLM.
     "intent": "string",
     "priority": "string"
   },
-  "affectedUsers": "string - all|many|some|few",
-  "metadata": "object - echoed back"
+  "affectedUsers": "string - all|many|some|few"
+}
+```
+
+#### `formatVOCAnalysis`
+
+분석 결과를 읽기 쉬운 형식으로 포맷팅합니다.
+
+**Input:**
+
+```json
+{
+  "analysis": "object - parseVOCAnalysis의 결과"
+}
+```
+
+**Output:**
+
+```json
+{
+  "formatted": "string - 포맷팅된 분석 결과",
+  "jiraDescription": "string - Jira 티켓용 설명"
 }
 ```
 
@@ -141,6 +193,7 @@ Main analysis tool using LLM.
 Finds similar issues using embeddings (requires OpenAI API key).
 
 **Input:**
+
 ```json
 {
   "vocText": "string",
@@ -149,6 +202,7 @@ Finds similar issues using embeddings (requires OpenAI API key).
 ```
 
 **Output:**
+
 ```json
 {
   "similarIssues": [
@@ -167,6 +221,7 @@ Finds similar issues using embeddings (requires OpenAI API key).
 Indexes a Jira issue for similarity search.
 
 **Input:**
+
 ```json
 {
   "jiraKey": "string - e.g., 'VOC-123'",
@@ -187,6 +242,7 @@ Manages Jira tickets and notifications.
 Creates a new Jira issue with auto-assignment.
 
 **Input:**
+
 ```json
 {
   "project": "string - Project key (e.g., 'VOC')",
@@ -202,6 +258,7 @@ Creates a new Jira issue with auto-assignment.
 ```
 
 **Output:**
+
 ```json
 {
   "issueKey": "string",
@@ -216,6 +273,7 @@ Creates a new Jira issue with auto-assignment.
 Adds a comment to an existing issue.
 
 **Input:**
+
 ```json
 {
   "issueKey": "string",
@@ -224,6 +282,7 @@ Adds a comment to an existing issue.
 ```
 
 **Output:**
+
 ```json
 {
   "commentId": "string",
@@ -236,6 +295,7 @@ Adds a comment to an existing issue.
 Changes issue status (e.g., "In Progress", "Done").
 
 **Input:**
+
 ```json
 {
   "issueKey": "string",
@@ -244,6 +304,7 @@ Changes issue status (e.g., "In Progress", "Done").
 ```
 
 **Output:**
+
 ```json
 {
   "success": true,
@@ -256,6 +317,7 @@ Changes issue status (e.g., "In Progress", "Done").
 Retrieves issue details.
 
 **Input:**
+
 ```json
 {
   "issueKey": "string"
@@ -263,6 +325,7 @@ Retrieves issue details.
 ```
 
 **Output:**
+
 ```json
 {
   "key": "string",
@@ -288,6 +351,7 @@ Integrates with legacy systems for error context.
 Queries user status from internal systems.
 
 **Input:**
+
 ```json
 {
   "userId": "string",
@@ -296,6 +360,7 @@ Queries user status from internal systems.
 ```
 
 **Output:**
+
 ```json
 {
   "userId": "string",
@@ -316,6 +381,7 @@ Queries user status from internal systems.
 Retrieves detailed error information.
 
 **Input:**
+
 ```json
 {
   "errorCode": "string - e.g., 'AUTH_001'"
@@ -323,6 +389,7 @@ Retrieves detailed error information.
 ```
 
 **Output:**
+
 ```json
 {
   "errorCode": "string",
@@ -333,6 +400,7 @@ Retrieves detailed error information.
 ```
 
 **Available Error Codes:**
+
 - `AUTH_001` - Invalid credentials
 - `AUTH_002` - MFA failed
 - `BILL_001` - Payment declined
@@ -347,6 +415,7 @@ Retrieves detailed error information.
 Fetches recent error logs for a user.
 
 **Input:**
+
 ```json
 {
   "userId": "string",
@@ -355,6 +424,7 @@ Fetches recent error logs for a user.
 ```
 
 **Output:**
+
 ```json
 {
   "userId": "string",
@@ -375,6 +445,7 @@ Fetches recent error logs for a user.
 Searches error codes by keyword.
 
 **Input:**
+
 ```json
 {
   "keyword": "string - e.g., 'authentication'"
@@ -382,6 +453,7 @@ Searches error codes by keyword.
 ```
 
 **Output:**
+
 ```json
 {
   "keyword": "string",
@@ -404,6 +476,7 @@ Searches error codes by keyword.
 Checks internal API health.
 
 **Output:**
+
 ```json
 {
   "status": "healthy|unhealthy|unreachable",
@@ -435,3 +508,7 @@ With `isError: true` flag set.
 5. **Handle errors gracefully**: All tools may fail, implement fallbacks
 6. **Index new issues**: Call `indexIssue` after creating tickets for future similarity search
 
+---
+
+**Version**: 2.0.0 (Python/FastMCP)  
+**Last Updated**: 2026-01-29
